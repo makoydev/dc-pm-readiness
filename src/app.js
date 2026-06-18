@@ -770,6 +770,253 @@ const QUESTIONS = [
       "I would confirm the customer commitment and then verify the operational prerequisites: security, escorts, access approvals, safety and permits. I would not bypass controls. I would offer options such as approved overtime, a different slot, or phased preparation, and escalate through governance if the business wants to fund or accept an exception.",
     tags: ["access control", "customer", "stakeholder management"],
   },
+  {
+    id: "hard-capacity-001",
+    difficulty: "hard",
+    topic: "customer / service delivery",
+    type: "scenario_text",
+    question:
+      "A customer requests a last-minute increase from 4 kW to 9 kW per rack. Sales says the contract allows growth, but the hall was planned at lower density. What do you do?",
+    rubric: [
+      "Validate contracted entitlement separately from technical feasibility",
+      "Check power, cooling, floor loading, rack layout, and upstream capacity",
+      "Assess redundancy impact and whether the change affects other customers",
+      "Coordinate facilities, operations, service delivery, network, and commercial owners",
+      "Offer options such as phased growth, different rack placement, or revised density",
+      "Document decision, constraints, customer communication, and risk ownership",
+    ],
+    sampleStrongAnswer:
+      "I would separate the commercial promise from the physical capacity decision. The team needs to confirm power, cooling, redundancy, floor loading, and any effect on other customers before accepting the higher rack density. I would present options such as phased growth, relocation to a more suitable zone, or a revised deployment plan, then document the risk and customer communication.",
+    tags: ["capacity", "rack density", "power", "cooling"],
+  },
+  {
+    id: "hard-network-001",
+    difficulty: "hard",
+    topic: "customer / service delivery",
+    type: "scenario_text",
+    question:
+      "The racks are installed and powered, but cross-connect delivery is delayed by a carrier. The customer wants to begin go-live testing anyway. How do you manage the situation?",
+    rubric: [
+      "Confirm which tests can proceed without the carrier connection",
+      "Identify critical path impact and dependencies for full go-live",
+      "Coordinate carrier, network, service delivery, customer, and site access teams",
+      "Create a recovery plan with dates, owners, and escalation path",
+      "Communicate partial-readiness versus production-readiness clearly",
+      "Avoid declaring go-live complete until required connectivity is validated",
+    ],
+    sampleStrongAnswer:
+      "I would define what is truly ready and what is blocked. Some local installation checks may continue, but production go-live cannot be claimed until required connectivity is delivered and validated. I would escalate with the carrier and network owners, publish a recovery plan, and keep the customer informed on partial readiness versus full service readiness.",
+    tags: ["cross-connect", "network", "go-live", "service delivery"],
+  },
+  {
+    id: "hard-security-001",
+    difficulty: "hard",
+    topic: "operations",
+    type: "scenario_text",
+    question:
+      "A senior executive asks you to let an unbadged vendor enter a secure data hall to avoid delaying a critical repair. The operations lead objects. What should you do?",
+    rubric: [
+      "Do not bypass physical security because of seniority or urgency",
+      "Validate the repair urgency and operational impact",
+      "Follow approved access, escort, identity, and permit requirements",
+      "Escalate through the proper security and operations governance path",
+      "Offer compliant alternatives such as approved escort coverage or rescheduling",
+      "Document the request, decision, exception path if any, and risk owner",
+    ],
+    sampleStrongAnswer:
+      "I would treat access control as part of site resilience, not an administrative obstacle. I would confirm the repair urgency, then work through approved identity, escort, permit, and security exception processes. If leadership wants an exception, it must go through the proper governance path with explicit risk ownership, not an informal override.",
+    tags: ["physical security", "access control", "governance"],
+  },
+  {
+    id: "hard-water-001",
+    difficulty: "hard",
+    topic: "sustainability",
+    type: "scenario_text",
+    question:
+      "A water-saving cooling mode can reduce WUE during dry months, but facilities warns it narrows thermal margin during peak IT load. How do you decide whether to use it?",
+    rubric: [
+      "Balance water efficiency with uptime and thermal reliability",
+      "Use measured load, weather, humidity, and equipment operating data",
+      "Define operating limits, monitoring, alarms, and rollback criteria",
+      "Pilot during lower-risk conditions before broader rollout",
+      "Include facilities, operations, sustainability, and customer impact owners",
+      "Document decision criteria and residual risk ownership",
+    ],
+    sampleStrongAnswer:
+      "I would not approve the mode just because it improves WUE. We need data on load, weather, humidity, equipment limits, and thermal margin. I would propose a controlled pilot with monitoring and rollback criteria, then expand only if facilities and operations agree the resilience margin remains acceptable.",
+    tags: ["WUE", "sustainability", "cooling", "thermal margin"],
+  },
+  {
+    id: "hard-budget-001",
+    difficulty: "hard",
+    topic: "project management",
+    type: "scenario_text",
+    question:
+      "A project is over budget, and procurement suggests choosing a cheaper electrical subcontractor with limited live-site experience. The schedule is already tight. What is your recommendation?",
+    rubric: [
+      "Evaluate capability and critical-environment experience, not only price",
+      "Assess safety, quality, uptime, warranty, and rework risk",
+      "Compare total risk-adjusted cost and schedule impact",
+      "Require technical review, references, supervision plan, and method controls",
+      "Escalate trade-offs with clear options and recommendation",
+      "Document procurement decision, assumptions, and risk ownership",
+    ],
+    sampleStrongAnswer:
+      "I would not make a live-site electrical decision on lowest price alone. The cheaper option needs technical qualification, references, supervision, method controls, and risk assessment. I would present the risk-adjusted cost and schedule trade-off to sponsors, including the cost of rework, safety exposure, and uptime risk.",
+    tags: ["budget", "procurement", "vendor risk", "live-site"],
+  },
+  {
+    id: "hard-rca-001",
+    difficulty: "hard",
+    topic: "operations",
+    type: "scenario_text",
+    question:
+      "After a short cooling incident, the immediate cause is restored quickly. A stakeholder says an RCA is unnecessary because there was no customer outage. How do you respond?",
+    rubric: [
+      "Explain that near misses still deserve structured learning",
+      "Separate service impact from resilience or process weakness",
+      "Capture timeline, alarms, decisions, contributing factors, and evidence",
+      "Identify corrective and preventive actions with owners and dates",
+      "Communicate proportionately without overstating the event",
+      "Track action closure and update procedures if needed",
+    ],
+    sampleStrongAnswer:
+      "I would argue for a proportionate post-incident review even without customer outage. A near miss can expose weaknesses in monitoring, maintenance, procedure, or response. We should capture the timeline and contributing factors, agree preventive actions with owners, and close them so the same weakness does not become a real outage later.",
+    tags: ["RCA", "near miss", "incident response", "lessons learned"],
+  },
+  {
+    id: "hard-change-001",
+    difficulty: "hard",
+    topic: "operations",
+    type: "scenario_text",
+    question:
+      "A maintenance vendor asks to add an extra task during an approved change window because the equipment is already isolated. The task is related but not in the approved MOP. What do you do?",
+    rubric: [
+      "Recognize scope creep inside a live-site change window",
+      "Check whether the added task changes risk, duration, isolation, or rollback",
+      "Require approval through change governance before adding scope",
+      "Consult operations and responsible engineers before any decision",
+      "Defer the task if it is not urgent or properly assessed",
+      "Document the request, decision, and reason",
+    ],
+    sampleStrongAnswer:
+      "I would not add work simply because the opportunity exists. The new task may change risk, duration, rollback, or affected systems, so it needs technical assessment and change approval. Unless it is urgent and approved through governance, I would defer it to a separate planned activity.",
+    tags: ["change control", "MOP", "scope", "risk"],
+  },
+  {
+    id: "hard-sla-001",
+    difficulty: "hard",
+    topic: "customer / service delivery",
+    type: "scenario_text",
+    question:
+      "A customer-facing SLA clock is running during a deployment issue, but the root cause may be with the customer's own equipment. How do you manage communication and ownership?",
+    rubric: [
+      "Focus first on service restoration and customer impact",
+      "Keep evidence-based separation between fault isolation and blame",
+      "Coordinate internal technical teams and the customer technical owner",
+      "Communicate status, next steps, and decision points at agreed intervals",
+      "Preserve logs, test results, timestamps, and handoff records",
+      "Escalate commercial or SLA interpretation through account governance",
+    ],
+    sampleStrongAnswer:
+      "I would keep the team focused on restoring service and isolating the fault with evidence. We should communicate clear status and next steps while preserving logs, timestamps, and test results. If ownership or SLA interpretation becomes commercial, I would escalate through account governance rather than letting technical teams argue blame during the incident.",
+    tags: ["SLA", "customer communication", "fault isolation", "escalation"],
+  },
+  {
+    id: "hard-procurement-001",
+    difficulty: "hard",
+    topic: "project management",
+    type: "scenario_text",
+    question:
+      "A long-lead switchboard is delayed, and the vendor offers a temporary alternative with different protection settings. The project sponsor wants to keep the launch date. What should the PM do?",
+    rubric: [
+      "Treat the alternative as an engineering change, not a simple substitution",
+      "Require technical review of protection, coordination, capacity, and compliance",
+      "Assess commissioning, operations, warranty, documentation, and rollback impact",
+      "Compare launch-date benefit against safety and resilience risk",
+      "Escalate options with schedule, cost, and risk consequences",
+      "Document approved decision and update affected drawings and procedures",
+    ],
+    sampleStrongAnswer:
+      "I would require the temporary switchboard option to go through engineering and operations review. Different protection settings can affect selectivity, compliance, commissioning, and live-site risk. I would present launch-date, cost, and resilience trade-offs to the sponsor and proceed only with an approved technical and governance decision.",
+    tags: ["procurement", "switchgear", "engineering change", "schedule"],
+  },
+  {
+    id: "hard-migration-001",
+    difficulty: "hard",
+    topic: "live-site risk",
+    type: "scenario_text",
+    question:
+      "A migration plan moves customer workloads between halls overnight. The technical teams disagree about whether rollback is still possible after the first batch. How do you manage the cutover?",
+    rubric: [
+      "Clarify no-go, hold, and rollback points before execution",
+      "Confirm dependency maps, customer impact, and validation checks",
+      "Require agreement from technical owners before passing irreversible steps",
+      "Use phased batches with explicit success criteria",
+      "Keep stakeholders informed at decision points",
+      "Document deviations, approvals, and final service validation",
+    ],
+    sampleStrongAnswer:
+      "I would not start until rollback points and irreversible steps are clearly agreed. The cutover should be phased with dependency maps, validation checks, hold points, and named decision owners. If rollback becomes impossible after a batch, everyone must understand and approve that threshold before crossing it.",
+    tags: ["migration", "rollback", "cutover", "live-site"],
+  },
+  {
+    id: "hard-generator-001",
+    difficulty: "hard",
+    topic: "live-site risk",
+    type: "scenario_text",
+    question:
+      "A generator load test passes electrically, but fuel polishing records show contamination risk in one day tank. The vendor says the next scheduled test is months away. What do you do?",
+    rubric: [
+      "Recognize that pass results do not erase supporting-system risk",
+      "Assess impact to generator availability, runtime, and redundancy",
+      "Engage facilities, operations, fuel vendor, and generator specialist",
+      "Define immediate mitigation, retest or inspection needs, and monitoring",
+      "Escalate if resilience is below accepted threshold",
+      "Update risk records, maintenance actions, and evidence trail",
+    ],
+    sampleStrongAnswer:
+      "I would treat the fuel issue as a resilience risk even if the electrical test passed. Generator availability depends on fuel quality and runtime confidence. I would involve facilities, operations, and the fuel vendor to assess impact, define remediation and retest needs, and escalate if redundancy or emergency runtime is compromised.",
+    tags: ["generator", "fuel", "load testing", "resilience"],
+  },
+  {
+    id: "hard-bms-001",
+    difficulty: "hard",
+    topic: "operations",
+    type: "scenario_text",
+    question:
+      "A BMS upgrade is planned during a low-risk window. Facilities says manual monitoring is available, but operations worries alarms may be unavailable for 30 minutes. How should the PM handle this?",
+    rubric: [
+      "Assess monitoring loss as an operational risk, not just an IT upgrade issue",
+      "Confirm which alarms, controls, and trend data are unavailable",
+      "Define manual watch, communication, staffing, and escalation coverage",
+      "Set rollback or abort criteria if monitoring is not restored on time",
+      "Notify stakeholders of temporary monitoring limitations",
+      "Document the degraded-monitoring period and restoration validation",
+    ],
+    sampleStrongAnswer:
+      "I would require the plan to explicitly manage the degraded monitoring period. We need to know which alarms and controls are unavailable, who is watching manually, how issues are escalated, and when rollback is triggered. The work can proceed only if operations accepts the temporary controls and restoration is validated.",
+    tags: ["BMS", "monitoring", "alarms", "operations"],
+  },
+  {
+    id: "hard-resource-001",
+    difficulty: "hard",
+    topic: "project management",
+    type: "scenario_text",
+    question:
+      "Two critical activities need the same facilities engineer: a customer deployment readiness check and a planned maintenance review. Both teams say their work is urgent. How do you prioritize?",
+    rubric: [
+      "Clarify business impact, live-site risk, deadlines, and dependencies",
+      "Identify whether either activity blocks safety, uptime, or customer commitment",
+      "Look for sequencing, delegation, or additional qualified resource options",
+      "Use transparent criteria instead of whoever escalates loudest",
+      "Communicate prioritization and trade-offs to both stakeholder groups",
+      "Escalate if resource conflict threatens approved commitments",
+    ],
+    sampleStrongAnswer:
+      "I would compare the two activities against clear criteria: uptime risk, safety, customer impact, deadlines, and dependencies. Then I would look for delegation, sequencing, or another qualified engineer. If both commitments are truly at risk, I would escalate with options and trade-offs rather than letting the loudest stakeholder win.",
+    tags: ["resource conflict", "prioritization", "stakeholder management"],
+  },
 ];
 
 const state = {
@@ -824,19 +1071,40 @@ function clearHistory() {
   render();
 }
 
-function shuffle(items) {
+function shuffle(items, randomizer = Math.random) {
   const copy = [...items];
   for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(randomizer() * (i + 1));
     [copy[i], copy[j]] = [copy[j], copy[i]];
   }
   return copy;
 }
 
-function startQuiz(mode) {
+function getQuestionPool(mode) {
+  return QUESTIONS.filter((question) => question.difficulty === mode);
+}
+
+function getRecentQuestionIds(history, mode, attemptLimit = mode === "hard" ? 3 : 1) {
+  return new Set(
+    history
+      .filter((result) => result.mode === mode && Array.isArray(result.questionIds))
+      .slice(0, attemptLimit)
+      .flatMap((result) => result.questionIds),
+  );
+}
+
+function selectAttemptQuestions(mode, history = getHistory(), randomizer = Math.random) {
   const config = MODES[mode];
-  const pool = QUESTIONS.filter((question) => question.difficulty === mode);
-  const questions = shuffle(pool).slice(0, config.attemptSize);
+  const pool = getQuestionPool(mode);
+  const recentIds = getRecentQuestionIds(history, mode);
+  const freshPool = pool.filter((question) => !recentIds.has(question.id));
+  const source = freshPool.length >= config.attemptSize ? freshPool : pool;
+
+  return shuffle(source, randomizer).slice(0, config.attemptSize);
+}
+
+function startQuiz(mode) {
+  const questions = selectAttemptQuestions(mode);
   state.quiz = {
     mode,
     questions,
@@ -957,6 +1225,7 @@ function buildResult(quiz) {
     correctCount: quiz.responses.length - incorrect,
     incorrectCount: incorrect,
     totalQuestions: quiz.questions.length,
+    questionIds: quiz.questions.map((question) => question.id),
     weakTopics,
     label: resultLabel(quiz.mode, percentage),
     recommendation: recommendation(quiz.mode, percentage, weakTopics),
