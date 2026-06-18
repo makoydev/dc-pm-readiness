@@ -12,6 +12,14 @@ python3 -m http.server 5173
 
 Then visit `http://localhost:5173`.
 
+## Test
+
+Run the automated scoring tests with:
+
+```sh
+npm test
+```
+
 ## Included
 
 - Easy, Medium, and Hardest quiz modes

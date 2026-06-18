@@ -1,0 +1,10 @@
+{
+  "name": "dc-pm-readiness",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Frontend-only data center PM readiness quiz app.",
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {}
+}
