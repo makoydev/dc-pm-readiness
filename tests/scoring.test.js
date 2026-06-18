@@ -53,6 +53,8 @@ globalThis.__quizApi = {
   isCorrect,
   scoreFor,
   maxScoreFor,
+  getRecentQuestionIds,
+  selectAttemptQuestions,
   getWeakTopics,
   resultLabel,
   recommendation,
@@ -104,6 +106,38 @@ test("uses rubric point counts for scenario scoring", () => {
   assert.equal(api.isCorrect(scenario, scenario.rubric.slice(0, 5)), true);
 });
 
+test("keeps a broad hard-mode scenario bank for concept practice", () => {
+  const api = loadQuizApi();
+  const hardQuestions = api.QUESTIONS.filter((question) => question.difficulty === "hard");
+  const hardTopics = new Set(hardQuestions.map((question) => question.topic));
+
+  assert.equal(hardQuestions.length >= 18, true);
+  assert.equal(hardTopics.size >= 5, true);
+  hardQuestions.forEach((question) => {
+    assert.equal(question.type, "scenario_text");
+    assert.equal(question.rubric.length >= 6, true);
+    assert.equal(question.sampleStrongAnswer.length > 80, true);
+  });
+});
+
+test("avoids recent hard questions when enough fresh scenarios exist", () => {
+  const api = loadQuizApi();
+  const hardQuestions = api.QUESTIONS.filter((question) => question.difficulty === "hard");
+  const recentQuestionIds = hardQuestions.slice(0, 15).map((question) => question.id);
+  const history = [
+    { mode: "hard", questionIds: recentQuestionIds.slice(0, 5) },
+    { mode: "hard", questionIds: recentQuestionIds.slice(5, 10) },
+    { mode: "hard", questionIds: recentQuestionIds.slice(10, 15) },
+    { mode: "easy", questionIds: ["easy-power-001"] },
+  ];
+
+  const selected = api.selectAttemptQuestions("hard", history, () => 0.99);
+  const selectedIds = selected.map((question) => question.id);
+
+  assert.equal(selected.length, api.MODES.hard.attemptSize);
+  assert.equal(selectedIds.some((id) => recentQuestionIds.includes(id)), false);
+});
+
 test("builds result labels, weak topics, and recommendations", () => {
   const api = loadQuizApi();
   const quiz = {
@@ -146,6 +180,7 @@ test("builds result labels, weak topics, and recommendations", () => {
   assert.equal(result.label, "Study operations basics");
   assert.equal(result.correctCount, 1);
   assert.equal(result.incorrectCount, 2);
+  assert.equal(JSON.stringify(result.questionIds), JSON.stringify(["q1", "q2", "q3"]));
   assert.equal(
     JSON.stringify(result.weakTopics.map((item) => item.topic)),
     JSON.stringify(["sustainability", "operations"]),
