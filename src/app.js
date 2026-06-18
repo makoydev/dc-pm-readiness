@@ -1084,6 +1084,10 @@ function getQuestionPool(mode) {
   return QUESTIONS.filter((question) => question.difficulty === mode);
 }
 
+function getModeQuestionCount(mode) {
+  return getQuestionPool(mode).length;
+}
+
 function getRecentQuestionIds(history, mode, attemptLimit = mode === "hard" ? 3 : 1) {
   return new Set(
     history
@@ -1390,12 +1394,15 @@ function renderHome() {
 }
 
 function modeCard(key, mode) {
+  const bankCount = getModeQuestionCount(key);
+  const bankLabel = key === "hard" ? "scenario bank" : "question bank";
   return `
     <article class="card mode-card">
       <div class="mode-top">
         <span class="mode-icon">${icon(mode.icon)}</span>
-        <span class="pill">${mode.attemptSize} questions</span>
+        <span class="pill">${mode.attemptSize} per attempt</span>
       </div>
+      <span class="pill">${bankCount} ${bankLabel}</span>
       <h3>${mode.name}</h3>
       <p>${mode.description}</p>
       <ul class="topic-list">

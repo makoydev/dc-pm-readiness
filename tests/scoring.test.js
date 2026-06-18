@@ -53,6 +53,7 @@ globalThis.__quizApi = {
   isCorrect,
   scoreFor,
   maxScoreFor,
+  getModeQuestionCount,
   getRecentQuestionIds,
   selectAttemptQuestions,
   getWeakTopics,
@@ -73,6 +74,8 @@ test("renders the required three mode cards on initial load", () => {
   assert.match(api.renderedHome, /Easy Mode/);
   assert.match(api.renderedHome, /Medium Mode/);
   assert.match(api.renderedHome, /Hardest Mode/);
+  assert.match(api.renderedHome, /5 per attempt/);
+  assert.match(api.renderedHome, /20 scenario bank/);
 });
 
 test("scores objective question types correctly", () => {
@@ -111,6 +114,7 @@ test("keeps a broad hard-mode scenario bank for concept practice", () => {
   const hardQuestions = api.QUESTIONS.filter((question) => question.difficulty === "hard");
   const hardTopics = new Set(hardQuestions.map((question) => question.topic));
 
+  assert.equal(api.getModeQuestionCount("hard"), 20);
   assert.equal(hardQuestions.length >= 18, true);
   assert.equal(hardTopics.size >= 5, true);
   hardQuestions.forEach((question) => {

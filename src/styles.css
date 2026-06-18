@@ -291,6 +291,11 @@ h3 {
   line-height: 1.55;
 }
 
+.mode-card > .pill {
+  align-self: flex-start;
+  margin-bottom: 16px;
+}
+
 .topic-list {
   display: flex;
   flex-wrap: wrap;

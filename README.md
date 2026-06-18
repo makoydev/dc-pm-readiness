@@ -34,4 +34,4 @@ npm test
 
 ## Learning Design
 
-Hardest Mode is designed for concept practice rather than memorizing fixed answers. The scenario bank covers live-site risk, capacity, cooling, power, customer delivery, procurement, security, monitoring, sustainability, and stakeholder trade-offs. Completed attempts save question IDs in local storage so later hard-mode attempts can prefer scenarios the user has not seen recently.
+Hardest Mode is designed for concept practice rather than memorizing fixed answers. It serves 5 scenarios per attempt from a 20-scenario bank covering live-site risk, capacity, cooling, power, customer delivery, procurement, security, monitoring, sustainability, and stakeholder trade-offs. Completed attempts save question IDs in local storage so later hard-mode attempts can prefer scenarios the user has not seen recently.
