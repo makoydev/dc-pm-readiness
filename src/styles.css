@@ -493,6 +493,75 @@ h3 {
   line-height: 1.5;
 }
 
+.text-answer:disabled {
+  color: var(--muted);
+  background: var(--surface-strong);
+}
+
+.timer-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px 14px;
+  align-items: center;
+  margin: 18px 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--info-soft);
+}
+
+.timer-panel > div:first-child {
+  min-width: 0;
+}
+
+.timer-panel strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.timer-panel span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.timer-panel.warning {
+  border-color: #e0ad4e;
+  background: var(--warning-soft);
+}
+
+.timer-panel.danger {
+  border-color: #f2b8b5;
+  background: var(--danger-soft);
+}
+
+.timer-track {
+  grid-column: 1 / -1;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.timer-track span {
+  display: block;
+  height: 100%;
+  margin: 0;
+  border-radius: inherit;
+  background: var(--info);
+  transition: width 0.25s ease;
+}
+
+.timer-panel.warning .timer-track span {
+  background: var(--warning);
+}
+
+.timer-panel.danger .timer-track span {
+  background: var(--danger);
+}
+
 .rubric {
   display: grid;
   gap: 10px;
@@ -715,6 +784,10 @@ h3 {
   }
 
   .status-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .timer-panel {
     grid-template-columns: 1fr;
   }
 }

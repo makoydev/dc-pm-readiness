@@ -20,11 +20,23 @@ Run the automated scoring tests with:
 npm test
 ```
 
+## Engineering Workflow
+
+For future feature work, use this default workflow unless the task explicitly says otherwise:
+
+- Keep changes small and focused; prefer microcommits for separate logical steps such as data changes, UI changes, tests, and docs.
+- Add or update tests for scoring logic, state transitions, storage behavior, and any user-visible edge cases.
+- Update documentation when behavior, setup, feature lists, or development workflow changes.
+- Run `npm test` before handing off work; also run a syntax check such as `node --check src/app.js` when editing the main script.
+- Preserve existing user changes in the working tree and avoid unrelated refactors.
+- Mention any verification that could not be completed, including browser smoke tests or network-dependent checks.
+
 ## Included
 
 - Easy, Medium, and Hardest quiz modes
 - Randomized question attempts
 - Recent-question rotation for Hardest Mode when enough unseen scenarios are available
+- Timed interview practice for Hardest Mode scenarios
 - Retry-missed flow from results and history
 - Multiple-choice, true/false, multi-select, and scenario self-scoring
 - Immediate explanations and sample strong scenario answers

@@ -28,6 +28,7 @@ const MODES = {
     attemptSize: 5,
     threshold: 70,
     next: null,
+    timedSeconds: 180,
     description:
       "Scenario-based interview simulation for live-site risk, escalation, customer impact, and uptime-first decision-making.",
     topics: ["Live-site risk", "Escalation", "SLA", "Trade-offs", "RCA"],
@@ -1024,6 +1025,7 @@ const state = {
   mode: null,
   quiz: null,
   lastResult: null,
+  timerId: null,
 };
 
 const app = document.querySelector("#app");
@@ -1042,15 +1044,24 @@ function icon(name) {
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
     home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>',
     next: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>',
+    clock:
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   };
   return `<span class="icon">${icons[name] || icons.next}</span>`;
 }
 
 function navigate(view, data = {}) {
+  if (view !== "quiz") stopTimer();
   state.view = view;
   Object.assign(state, data);
   render();
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function stopTimer() {
+  if (!state.timerId) return;
+  clearInterval(state.timerId);
+  state.timerId = null;
 }
 
 function getHistory() {
@@ -1112,7 +1123,8 @@ function questionsByIds(questionIds) {
   return QUESTIONS.filter((question) => wanted.has(question.id));
 }
 
-function createQuiz(mode, questions, source = "standard") {
+function createQuiz(mode, questions, source = "standard", options = {}) {
+  const timed = Boolean(options.timed);
   state.quiz = {
     mode,
     questions,
@@ -1123,6 +1135,15 @@ function createQuiz(mode, questions, source = "standard") {
     submitted: false,
     responses: [],
     startedAt: new Date().toISOString(),
+    timer: timed
+      ? {
+          enabled: true,
+          secondsPerQuestion: options.secondsPerQuestion || MODES[mode].timedSeconds,
+          questionId: null,
+          questionStartedAt: null,
+          expiresAt: null,
+        }
+      : null,
   };
   navigate("quiz", { mode });
 }
@@ -1130,6 +1151,15 @@ function createQuiz(mode, questions, source = "standard") {
 function startQuiz(mode) {
   const questions = selectAttemptQuestions(mode);
   createQuiz(mode, questions);
+}
+
+function startTimedQuiz(mode) {
+  if (!MODES[mode].timedSeconds) return startQuiz(mode);
+  const questions = selectAttemptQuestions(mode);
+  createQuiz(mode, questions, "timed", {
+    timed: true,
+    secondsPerQuestion: MODES[mode].timedSeconds,
+  });
 }
 
 function startMissedQuiz(mode, questionIds) {
@@ -1175,6 +1205,86 @@ function maxScoreFor(question) {
   return isScenario(question) ? question.rubric.length : 1;
 }
 
+function formatDuration(totalSeconds) {
+  const safeSeconds = Math.max(0, Math.ceil(totalSeconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function ensureQuestionTimer(now = Date.now()) {
+  const quiz = state.quiz;
+  if (!quiz?.timer?.enabled) return;
+  const question = currentQuestion();
+  if (quiz.timer.questionId === question.id) return;
+  quiz.timer.questionId = question.id;
+  quiz.timer.questionStartedAt = now;
+  quiz.timer.expiresAt = now + quiz.timer.secondsPerQuestion * 1000;
+}
+
+function getTimerRemainingMs(quiz = state.quiz, now = Date.now()) {
+  if (!quiz?.timer?.enabled || !quiz.timer.expiresAt) return null;
+  return Math.max(0, quiz.timer.expiresAt - now);
+}
+
+function getQuestionElapsedSeconds(quiz = state.quiz, now = Date.now()) {
+  if (!quiz?.timer?.enabled || !quiz.timer.questionStartedAt) return null;
+  const elapsed = Math.round((now - quiz.timer.questionStartedAt) / 1000);
+  return Math.min(quiz.timer.secondsPerQuestion, Math.max(0, elapsed));
+}
+
+function syncTimerState(now = Date.now()) {
+  const quiz = state.quiz;
+  if (!quiz?.timer?.enabled) return;
+  ensureQuestionTimer(now);
+  if (!quiz.submitted && getTimerRemainingMs(quiz, now) === 0) {
+    recordResponse({ timedOut: true, now });
+  }
+}
+
+function updateTimerDom() {
+  const quiz = state.quiz;
+  if (!quiz?.timer?.enabled) return;
+  const remainingMs = getTimerRemainingMs(quiz);
+  if (remainingMs === null) return;
+  const remainingSeconds = Math.ceil(remainingMs / 1000);
+  const countdown = document.querySelector("[data-timer-countdown]");
+  const bar = document.querySelector("[data-timer-bar]");
+  const panel = document.querySelector("[data-timer-panel]");
+  if (countdown) countdown.textContent = formatDuration(remainingSeconds);
+  if (bar) {
+    const pct = Math.max(0, Math.min(100, (remainingSeconds / quiz.timer.secondsPerQuestion) * 100));
+    bar.style.width = `${pct}%`;
+  }
+  if (panel) {
+    panel.classList.toggle("warning", remainingSeconds <= 60 && remainingSeconds > 30);
+    panel.classList.toggle("danger", remainingSeconds <= 30);
+  }
+}
+
+function scheduleTimerTick() {
+  const quiz = state.quiz;
+  if (!quiz?.timer?.enabled || quiz.submitted) {
+    stopTimer();
+    return;
+  }
+  if (state.timerId) return;
+  state.timerId = setInterval(() => {
+    if (!state.quiz?.timer?.enabled || state.view !== "quiz") {
+      stopTimer();
+      return;
+    }
+    const remainingMs = getTimerRemainingMs(state.quiz);
+    if (remainingMs === 0 && !state.quiz.submitted) {
+      stopTimer();
+      syncTimerState();
+      render();
+      return;
+    }
+    updateTimerDom();
+  }, 1000);
+}
+
 function setSelection(value) {
   const question = currentQuestion();
   if (state.quiz.submitted) return;
@@ -1190,33 +1300,52 @@ function setSelection(value) {
 }
 
 function setTextAnswer(value) {
+  if (state.quiz.submitted) return;
   state.quiz.textAnswer = value;
 }
 
-function submitAnswer() {
+function recordResponse({ timedOut = false, now = Date.now() } = {}) {
   const question = currentQuestion();
-  if (!state.quiz.selected.length) return;
+  if (state.quiz.submitted) return;
+  const selection = timedOut ? [] : [...state.quiz.selected];
   state.quiz.submitted = true;
-  const selection = [...state.quiz.selected];
   state.quiz.responses.push({
     questionId: question.id,
     topic: question.topic,
     tags: question.tags,
     selected: selection,
     textAnswer: state.quiz.textAnswer,
-    correct: isCorrect(question, selection),
-    score: scoreFor(question, selection),
+    correct: timedOut ? false : isCorrect(question, selection),
+    score: timedOut ? 0 : scoreFor(question, selection),
     maxScore: maxScoreFor(question),
+    timedOut,
+    timedSecondsUsed: state.quiz.timer?.enabled
+      ? timedOut
+        ? state.quiz.timer.secondsPerQuestion
+        : getQuestionElapsedSeconds(state.quiz, now)
+      : null,
   });
+}
+
+function submitAnswer() {
+  if (!state.quiz.selected.length) return;
+  recordResponse();
+  stopTimer();
   render();
 }
 
 function nextQuestion() {
+  stopTimer();
   if (state.quiz.index < state.quiz.questions.length - 1) {
     state.quiz.index += 1;
     state.quiz.selected = [];
     state.quiz.textAnswer = "";
     state.quiz.submitted = false;
+    if (state.quiz.timer?.enabled) {
+      state.quiz.timer.questionId = null;
+      state.quiz.timer.questionStartedAt = null;
+      state.quiz.timer.expiresAt = null;
+    }
     render();
     return;
   }
@@ -1232,9 +1361,10 @@ function finishQuiz() {
 function buildResult(quiz) {
   const totalScore = quiz.responses.reduce((sum, item) => sum + item.score, 0);
   const maxScore = quiz.responses.reduce((sum, item) => sum + item.maxScore, 0);
-  const percentage = Math.round((totalScore / maxScore) * 100);
+  const percentage = maxScore ? Math.round((totalScore / maxScore) * 100) : 0;
   const incorrect = quiz.responses.filter((item) => !item.correct).length;
   const weakTopics = getWeakTopics(quiz.responses);
+  const timedResponses = quiz.responses.filter((item) => typeof item.timedSecondsUsed === "number");
   return {
     id: `result-${Date.now()}`,
     mode: quiz.mode,
@@ -1250,6 +1380,10 @@ function buildResult(quiz) {
       .filter((response) => !response.correct)
       .map((response) => response.questionId),
     source: quiz.source,
+    timed: Boolean(quiz.timer?.enabled),
+    timedSecondsPerQuestion: quiz.timer?.secondsPerQuestion || null,
+    timedOutCount: quiz.responses.filter((response) => response.timedOut).length,
+    totalTimedSeconds: timedResponses.reduce((sum, item) => sum + item.timedSecondsUsed, 0),
     weakTopics,
     label: resultLabel(quiz.mode, percentage),
     recommendation: recommendation(quiz.mode, percentage, weakTopics),
@@ -1398,7 +1532,7 @@ function renderHome() {
       <div class="section-head">
         <div>
           <h2>Choose A Mode</h2>
-          <p>Each attempt is randomized. Easy and Medium score objective answers; Hardest uses a rubric checklist for self-scored interview practice.</p>
+          <p>Each attempt is randomized. Easy and Medium score objective answers; Hardest uses a rubric checklist, with optional timed interview practice.</p>
         </div>
       </div>
       <div class="mode-grid">
@@ -1410,6 +1544,9 @@ function renderHome() {
   `);
   document.querySelectorAll("[data-start-mode]").forEach((button) => {
     button.addEventListener("click", () => startQuiz(button.dataset.startMode));
+  });
+  document.querySelectorAll("[data-start-timed-mode]").forEach((button) => {
+    button.addEventListener("click", () => startTimedQuiz(button.dataset.startTimedMode));
   });
 }
 
@@ -1423,6 +1560,7 @@ function modeCard(key, mode) {
         <span class="pill">${mode.attemptSize} per attempt</span>
       </div>
       <span class="pill">${bankCount} ${bankLabel}</span>
+      ${mode.timedSeconds ? `<span class="pill">${formatDuration(mode.timedSeconds)} timed practice</span>` : ""}
       <h3>${mode.name}</h3>
       <p>${mode.description}</p>
       <ul class="topic-list">
@@ -1430,6 +1568,11 @@ function modeCard(key, mode) {
       </ul>
       <div class="card-actions">
         <button class="btn btn-primary" data-start-mode="${key}">${icon("play")} Start Quiz</button>
+        ${
+          mode.timedSeconds
+            ? `<button class="btn" data-start-timed-mode="${key}">${icon("clock")} Timed Practice</button>`
+            : ""
+        }
       </div>
     </article>
   `;
@@ -1438,6 +1581,7 @@ function modeCard(key, mode) {
 function renderQuiz() {
   const quiz = state.quiz;
   if (!quiz) return renderHome();
+  syncTimerState();
   const question = currentQuestion();
   const progress = Math.round(((quiz.index + 1) / quiz.questions.length) * 100);
   shell(`
@@ -1452,6 +1596,7 @@ function renderQuiz() {
         </div>
         <p class="eyebrow">${titleCase(question.topic)} · ${question.type.replace("_", " ")}</p>
         <h1 class="question-text">${question.question}</h1>
+        ${timerPanel()}
         ${questionInput(question)}
         ${quiz.submitted ? feedbackBlock(question) : ""}
         <div class="card-actions">
@@ -1469,12 +1614,31 @@ function renderQuiz() {
     </section>
   `);
   bindQuestionEvents(question);
+  updateTimerDom();
+  scheduleTimerTick();
+}
+
+function timerPanel() {
+  const quiz = state.quiz;
+  if (!quiz?.timer?.enabled) return "";
+  const remainingSeconds = Math.ceil((getTimerRemainingMs(quiz) || 0) / 1000);
+  const pct = Math.max(0, Math.min(100, (remainingSeconds / quiz.timer.secondsPerQuestion) * 100));
+  return `
+    <div class="timer-panel ${quiz.submitted && remainingSeconds === 0 ? "danger" : ""}" data-timer-panel>
+      <div>
+        <strong>${icon("clock")} Interview Timer</strong>
+        <span>${quiz.submitted && remainingSeconds === 0 ? "Time expired" : "Answer before the timer ends"}</span>
+      </div>
+      <strong data-timer-countdown>${formatDuration(remainingSeconds)}</strong>
+      <div class="timer-track" aria-label="Time remaining"><span data-timer-bar style="width:${pct}%"></span></div>
+    </div>
+  `;
 }
 
 function questionInput(question) {
   if (isScenario(question)) {
     return `
-      <textarea class="text-answer" data-text-answer placeholder="Draft your interview answer here. Then check the rubric points you covered.">${state.quiz.textAnswer}</textarea>
+      <textarea class="text-answer" data-text-answer placeholder="Draft your interview answer here. Then check the rubric points you covered." ${state.quiz.submitted ? "disabled" : ""}>${state.quiz.textAnswer}</textarea>
       <div class="rubric" aria-label="Self-scoring rubric">
         ${question.rubric
           .map(
@@ -1531,7 +1695,7 @@ function feedbackBlock(question) {
     const percent = Math.round((response.score / response.maxScore) * 100);
     return `
       <div class="feedback ${percent >= 70 ? "good" : "bad"}">
-        <strong>Rubric score: ${response.score} of ${response.maxScore} (${percent}%).</strong>
+        <strong>${response.timedOut ? "Time expired. " : ""}Rubric score: ${response.score} of ${response.maxScore} (${percent}%).</strong>
         <div class="sample-answer">
           <strong>Sample strong answer</strong>
           <p>${question.sampleStrongAnswer}</p>
@@ -1552,6 +1716,12 @@ function quizStatus() {
   const earned = state.quiz.responses.reduce((sum, item) => sum + item.score, 0);
   const possible = state.quiz.responses.reduce((sum, item) => sum + item.maxScore, 0);
   const liveScore = possible ? `${Math.round((earned / possible) * 100)}%` : "Pending";
+  const timerRows = state.quiz.timer?.enabled
+    ? `
+      <div><dt>Practice Type</dt><dd>Timed</dd></div>
+      <div><dt>Time Limit</dt><dd>${formatDuration(state.quiz.timer.secondsPerQuestion)}</dd></div>
+    `
+    : "";
   return `
     <h3>Attempt Status</h3>
     <dl>
@@ -1559,6 +1729,7 @@ function quizStatus() {
       <div><dt>Current Score</dt><dd>${liveScore}</dd></div>
       <div><dt>Mode</dt><dd>${MODES[state.quiz.mode].shortName}</dd></div>
       <div><dt>Pass Target</dt><dd>${MODES[state.quiz.mode].threshold}%</dd></div>
+      ${timerRows}
     </dl>
   `;
 }
@@ -1587,6 +1758,12 @@ function renderResults(result) {
   if (!effectiveResult) return renderHistory();
   const nextMode = MODES[effectiveResult.mode].next;
   const missedCount = effectiveResult.missedQuestionIds?.length || 0;
+  const timedSummary = effectiveResult.timed
+    ? `
+          <div class="metric"><span>Timed Out</span><strong>${effectiveResult.timedOutCount || 0}</strong></div>
+          <div class="metric"><span>Total Time</span><strong>${formatDuration(effectiveResult.totalTimedSeconds || 0)}</strong></div>
+      `
+    : "";
   shell(`
     <section class="results-grid">
       <article class="card results-card">
@@ -1601,6 +1778,7 @@ function renderResults(result) {
           <div class="metric"><span>Incorrect</span><strong>${effectiveResult.incorrectCount}</strong></div>
           <div class="metric"><span>Points</span><strong>${effectiveResult.totalScore}/${effectiveResult.maxScore}</strong></div>
           <div class="metric"><span>Completed</span><strong>${formatDate(effectiveResult.completedAt).split(",")[0]}</strong></div>
+          ${timedSummary}
         </div>
         <div class="card-actions" style="margin-top:18px">
           <button class="btn btn-primary" data-retry="${effectiveResult.mode}">${icon("play")} Retry</button>
@@ -1695,7 +1873,7 @@ function renderHistory() {
                   (item) => `
                     <article class="history-item">
                       <strong>${item.modeName}: ${item.percentage}% · ${item.label}</strong>
-                      <span>${formatDate(item.completedAt)} · ${item.correctCount}/${item.totalQuestions} questions correct · Weak topics: ${
+                      <span>${formatDate(item.completedAt)} · ${item.correctCount}/${item.totalQuestions} questions correct${item.timed ? ` · Timed out: ${item.timedOutCount || 0}` : ""} · Weak topics: ${
                         item.weakTopics.length
                           ? item.weakTopics.map((topic) => titleCase(topic.topic)).join(", ")
                           : "None"

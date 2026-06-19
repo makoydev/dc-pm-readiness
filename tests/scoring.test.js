@@ -62,6 +62,9 @@ globalThis.__quizApi = {
   recommendation,
   buildResult,
   titleCase,
+  formatDuration,
+  getTimerRemainingMs,
+  getQuestionElapsedSeconds,
   renderedHome: app.innerHTML
 };`,
     context,
@@ -77,6 +80,7 @@ test("renders the required three mode cards on initial load", () => {
   assert.match(api.renderedHome, /Hardest Mode/);
   assert.match(api.renderedHome, /5 per attempt/);
   assert.match(api.renderedHome, /20 scenario bank/);
+  assert.match(api.renderedHome, /Timed Practice/);
 });
 
 test("scores objective question types correctly", () => {
@@ -200,6 +204,56 @@ test("builds result labels, weak topics, and recommendations", () => {
     JSON.stringify(["sustainability", "operations"]),
   );
   assert.match(result.recommendation, /Use the study topics page before retrying this mode/);
+});
+
+test("formats timer values and calculates timed result metadata", () => {
+  const api = loadQuizApi();
+  const quiz = {
+    mode: "hard",
+    source: "timed",
+    timer: {
+      enabled: true,
+      secondsPerQuestion: 180,
+      questionStartedAt: 1_000,
+      expiresAt: 181_000,
+    },
+    questions: [{ id: "q1" }, { id: "q2" }],
+    responses: [
+      {
+        questionId: "q1",
+        topic: "operations",
+        tags: ["MOP"],
+        selected: ["Pause and assess"],
+        correct: true,
+        score: 5,
+        maxScore: 6,
+        timedOut: false,
+        timedSecondsUsed: 75,
+      },
+      {
+        questionId: "q2",
+        topic: "live-site risk",
+        tags: ["risk"],
+        selected: [],
+        correct: false,
+        score: 0,
+        maxScore: 6,
+        timedOut: true,
+        timedSecondsUsed: 180,
+      },
+    ],
+  };
+
+  const result = api.buildResult(quiz);
+
+  assert.equal(api.formatDuration(180), "3:00");
+  assert.equal(api.getTimerRemainingMs(quiz, 121_000), 60_000);
+  assert.equal(api.getQuestionElapsedSeconds(quiz, 91_000), 90);
+  assert.equal(result.timed, true);
+  assert.equal(result.timedSecondsPerQuestion, 180);
+  assert.equal(result.timedOutCount, 1);
+  assert.equal(result.totalTimedSeconds, 255);
+  assert.equal(result.percentage, 42);
 });
 
 test("returns expected readiness labels at boundaries", () => {
