@@ -56,6 +56,7 @@ globalThis.__quizApi = {
   getModeQuestionCount,
   getRecentQuestionIds,
   selectAttemptQuestions,
+  questionsByIds,
   getWeakTopics,
   resultLabel,
   recommendation,
@@ -142,6 +143,14 @@ test("avoids recent hard questions when enough fresh scenarios exist", () => {
   assert.equal(selectedIds.some((id) => recentQuestionIds.includes(id)), false);
 });
 
+test("looks up missed questions by stored result IDs", () => {
+  const api = loadQuizApi();
+  const selected = api.questionsByIds(["hard-live-001", "missing-id", "easy-power-001"]);
+
+  assert.equal(selected.length, 2);
+  assert.equal(JSON.stringify(selected.map((question) => question.id)), JSON.stringify(["easy-power-001", "hard-live-001"]));
+});
+
 test("builds result labels, weak topics, and recommendations", () => {
   const api = loadQuizApi();
   const quiz = {
@@ -185,6 +194,7 @@ test("builds result labels, weak topics, and recommendations", () => {
   assert.equal(result.correctCount, 1);
   assert.equal(result.incorrectCount, 2);
   assert.equal(JSON.stringify(result.questionIds), JSON.stringify(["q1", "q2", "q3"]));
+  assert.equal(JSON.stringify(result.missedQuestionIds), JSON.stringify(["q2", "q3"]));
   assert.equal(
     JSON.stringify(result.weakTopics.map((item) => item.topic)),
     JSON.stringify(["sustainability", "operations"]),
