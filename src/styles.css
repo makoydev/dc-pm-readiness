@@ -625,6 +625,10 @@ h3 {
   font-size: 0.9rem;
 }
 
+.history-item .card-actions {
+  margin-top: 12px;
+}
+
 .study-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }

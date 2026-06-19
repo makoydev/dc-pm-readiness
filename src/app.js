@@ -1107,11 +1107,16 @@ function selectAttemptQuestions(mode, history = getHistory(), randomizer = Math.
   return shuffle(source, randomizer).slice(0, config.attemptSize);
 }
 
-function startQuiz(mode) {
-  const questions = selectAttemptQuestions(mode);
+function questionsByIds(questionIds) {
+  const wanted = new Set(questionIds);
+  return QUESTIONS.filter((question) => wanted.has(question.id));
+}
+
+function createQuiz(mode, questions, source = "standard") {
   state.quiz = {
     mode,
     questions,
+    source,
     index: 0,
     selected: [],
     textAnswer: "",
@@ -1120,6 +1125,17 @@ function startQuiz(mode) {
     startedAt: new Date().toISOString(),
   };
   navigate("quiz", { mode });
+}
+
+function startQuiz(mode) {
+  const questions = selectAttemptQuestions(mode);
+  createQuiz(mode, questions);
+}
+
+function startMissedQuiz(mode, questionIds) {
+  const questions = shuffle(questionsByIds(questionIds).filter((question) => question.difficulty === mode));
+  if (!questions.length) return;
+  createQuiz(mode, questions, "missed");
 }
 
 function currentQuestion() {
@@ -1230,6 +1246,10 @@ function buildResult(quiz) {
     incorrectCount: incorrect,
     totalQuestions: quiz.questions.length,
     questionIds: quiz.questions.map((question) => question.id),
+    missedQuestionIds: quiz.responses
+      .filter((response) => !response.correct)
+      .map((response) => response.questionId),
+    source: quiz.source,
     weakTopics,
     label: resultLabel(quiz.mode, percentage),
     recommendation: recommendation(quiz.mode, percentage, weakTopics),
@@ -1566,6 +1586,7 @@ function renderResults(result) {
   const effectiveResult = result || getHistory()[0];
   if (!effectiveResult) return renderHistory();
   const nextMode = MODES[effectiveResult.mode].next;
+  const missedCount = effectiveResult.missedQuestionIds?.length || 0;
   shell(`
     <section class="results-grid">
       <article class="card results-card">
@@ -1583,6 +1604,11 @@ function renderResults(result) {
         </div>
         <div class="card-actions" style="margin-top:18px">
           <button class="btn btn-primary" data-retry="${effectiveResult.mode}">${icon("play")} Retry</button>
+          ${
+            missedCount
+              ? `<button class="btn" data-retry-missed="${effectiveResult.id}">${icon("next")} Retry Missed (${missedCount})</button>`
+              : ""
+          }
           ${nextMode ? `<button class="btn" data-start-mode="${nextMode}">${icon("next")} Try ${MODES[nextMode].shortName}</button>` : ""}
           <button class="btn" data-action="study">${icon("study")} Study Topics</button>
         </div>
@@ -1611,6 +1637,13 @@ function renderResults(result) {
   `);
   document.querySelectorAll("[data-retry]").forEach((button) => {
     button.addEventListener("click", () => startQuiz(button.dataset.retry));
+  });
+  document.querySelectorAll("[data-retry-missed]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const historyResult = getHistory().find((item) => item.id === button.dataset.retryMissed);
+      const selectedResult = historyResult || effectiveResult;
+      startMissedQuiz(selectedResult.mode, selectedResult.missedQuestionIds || []);
+    });
   });
   document.querySelectorAll("[data-start-mode]").forEach((button) => {
     button.addEventListener("click", () => startQuiz(button.dataset.startMode));
@@ -1667,6 +1700,11 @@ function renderHistory() {
                           ? item.weakTopics.map((topic) => titleCase(topic.topic)).join(", ")
                           : "None"
                       }</span>
+                      ${
+                        item.missedQuestionIds?.length
+                          ? `<div class="card-actions"><button class="btn" data-retry-missed="${item.id}">${icon("next")} Retry Missed (${item.missedQuestionIds.length})</button></div>`
+                          : ""
+                      }
                     </article>
                   `,
                 )
@@ -1684,6 +1722,12 @@ function renderHistory() {
   });
   document.querySelectorAll("[data-start-mode]").forEach((button) => {
     button.addEventListener("click", () => startQuiz(button.dataset.startMode));
+  });
+  document.querySelectorAll("[data-retry-missed]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const result = getHistory().find((item) => item.id === button.dataset.retryMissed);
+      if (result) startMissedQuiz(result.mode, result.missedQuestionIds || []);
+    });
   });
 }
 
