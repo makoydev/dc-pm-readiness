@@ -62,6 +62,9 @@ globalThis.__quizApi = {
   flashcardDetail,
   flashcardSummary,
   getWeakTopics,
+  summarizeModeProgress,
+  summarizeWeakTopics,
+  summarizeProgress,
   resultLabel,
   recommendation,
   buildResult,
@@ -293,6 +296,52 @@ test("summarizes flashcard session review topics", () => {
   assert.equal(summary.knownCount, 1);
   assert.equal(summary.reviewCount, 2);
   assert.equal(JSON.stringify(summary.reviewTopics), JSON.stringify(["cooling", "power"]));
+});
+
+test("summarizes saved-result progress by mode and weak topics", () => {
+  const api = loadQuizApi();
+  const history = [
+    {
+      mode: "medium",
+      percentage: 82,
+      weakTopics: [{ topic: "operations", misses: 1, percentage: 72 }],
+    },
+    {
+      mode: "easy",
+      percentage: 90,
+      weakTopics: [],
+    },
+    {
+      mode: "medium",
+      percentage: 62,
+      weakTopics: [
+        { topic: "operations", misses: 2, percentage: 55 },
+        { topic: "sustainability", misses: 1, percentage: 60 },
+      ],
+    },
+    {
+      mode: "medium",
+      percentage: 54,
+      weakTopics: [{ topic: "operations", misses: 3, percentage: 42 }],
+    },
+  ];
+
+  const medium = api.summarizeModeProgress(history, "medium");
+  const weakTopics = api.summarizeWeakTopics(history);
+  const progress = api.summarizeProgress(history);
+
+  assert.equal(medium.attempts, 3);
+  assert.equal(medium.latest, 82);
+  assert.equal(medium.first, 54);
+  assert.equal(medium.improvement, 28);
+  assert.equal(medium.best, 82);
+  assert.equal(JSON.stringify(weakTopics.map((item) => item.topic)), JSON.stringify(["operations", "sustainability"]));
+  assert.equal(weakTopics[0].misses, 6);
+  assert.equal(progress.attempts, 4);
+  assert.equal(progress.bestScore, 90);
+  assert.equal(progress.averageScore, 72);
+  assert.equal(progress.recentDelta, -8);
+  assert.equal(progress.byMode.find((item) => item.mode === "hard").attempts, 0);
 });
 
 test("returns expected readiness labels at boundaries", () => {

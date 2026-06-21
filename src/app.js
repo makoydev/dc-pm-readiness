@@ -1498,6 +1498,79 @@ function getWeakTopics(responses) {
     .slice(0, 5);
 }
 
+function average(values) {
+  if (!values.length) return null;
+  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+}
+
+function summarizeModeProgress(history, mode) {
+  const results = history.filter((result) => result.mode === mode);
+  if (!results.length) {
+    return {
+      mode,
+      attempts: 0,
+      latest: null,
+      best: null,
+      first: null,
+      improvement: null,
+      average: null,
+    };
+  }
+  const scores = results.map((result) => result.percentage);
+  const latest = results[0].percentage;
+  const first = results[results.length - 1].percentage;
+  return {
+    mode,
+    attempts: results.length,
+    latest,
+    best: Math.max(...scores),
+    first,
+    improvement: latest - first,
+    average: average(scores),
+  };
+}
+
+function summarizeWeakTopics(history, limit = 5) {
+  const byTopic = new Map();
+  history.forEach((result) => {
+    (result.weakTopics || []).forEach((item) => {
+      const current = byTopic.get(item.topic) || {
+        attempts: 0,
+        misses: 0,
+        percentageTotal: 0,
+      };
+      current.attempts += 1;
+      current.misses += item.misses || 0;
+      current.percentageTotal += item.percentage;
+      byTopic.set(item.topic, current);
+    });
+  });
+  return [...byTopic.entries()]
+    .map(([topic, data]) => ({
+      topic,
+      attempts: data.attempts,
+      misses: data.misses,
+      averagePercentage: Math.round(data.percentageTotal / data.attempts),
+    }))
+    .sort((a, b) => b.misses - a.misses || a.averagePercentage - b.averagePercentage)
+    .slice(0, limit);
+}
+
+function summarizeProgress(history) {
+  const scores = history.map((result) => result.percentage);
+  const latest = history[0] || null;
+  const previous = history[1] || null;
+  return {
+    attempts: history.length,
+    latestScore: latest ? latest.percentage : null,
+    bestScore: scores.length ? Math.max(...scores) : null,
+    averageScore: average(scores),
+    recentDelta: latest && previous ? latest.percentage - previous.percentage : null,
+    byMode: Object.keys(MODES).map((mode) => summarizeModeProgress(history, mode)),
+    weakTopics: summarizeWeakTopics(history),
+  };
+}
+
 function resultLabel(mode, score) {
   if (mode === "easy") {
     if (score < 50) return "Start with fundamentals";
