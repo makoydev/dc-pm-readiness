@@ -1616,6 +1616,22 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
+function scoreValue(value) {
+  return value === null ? "None" : `${value}%`;
+}
+
+function deltaValue(value) {
+  if (value === null) return "None";
+  if (value > 0) return `+${value} pts`;
+  if (value < 0) return `${value} pts`;
+  return "No change";
+}
+
+function deltaClass(value) {
+  if (value === null || value === 0) return "";
+  return value > 0 ? "trend-up" : "trend-down";
+}
+
 function shell(content) {
   app.innerHTML = `
     <div class="app-shell">
@@ -2145,6 +2161,7 @@ function renderStudy() {
 
 function renderHistory() {
   const history = getHistory();
+  const progress = summarizeProgress(history);
   shell(`
     <section>
       <div class="section-head">
@@ -2154,6 +2171,7 @@ function renderHistory() {
         </div>
         ${history.length ? '<button class="btn btn-danger" data-clear-history>Clear History</button>' : ""}
       </div>
+      ${history.length ? progressDashboard(progress) : ""}
       ${
         history.length
           ? `<div class="history-list">
@@ -2196,6 +2214,60 @@ function renderHistory() {
       if (result) startMissedQuiz(result.mode, result.missedQuestionIds || []);
     });
   });
+}
+
+function progressDashboard(progress) {
+  return `
+    <div class="progress-dashboard">
+      <div class="status-grid">
+        <div class="metric"><span>Total Attempts</span><strong>${progress.attempts}</strong></div>
+        <div class="metric"><span>Best Score</span><strong>${scoreValue(progress.bestScore)}</strong></div>
+        <div class="metric"><span>Average Score</span><strong>${scoreValue(progress.averageScore)}</strong></div>
+        <div class="metric"><span>Recent Change</span><strong class="${deltaClass(progress.recentDelta)}">${deltaValue(progress.recentDelta)}</strong></div>
+      </div>
+      <div class="dashboard-grid">
+        <article class="dashboard-panel">
+          <h3>Mode Progress</h3>
+          <div class="mode-progress-list">
+            ${progress.byMode.map((item) => modeProgressRow(item)).join("")}
+          </div>
+        </article>
+        <article class="dashboard-panel">
+          <h3>Recurring Weak Topics</h3>
+          <div class="weak-list">
+            ${
+              progress.weakTopics.length
+                ? progress.weakTopics
+                    .map(
+                      (item) => `
+                        <div class="weak-topic">
+                          <strong>${titleCase(item.topic)}</strong>
+                          <span>${item.misses} misses across ${item.attempts} attempt${item.attempts === 1 ? "" : "s"} · ${item.averagePercentage}% average topic score</span>
+                        </div>
+                      `,
+                    )
+                    .join("")
+                : '<div class="empty-state"><p>No recurring weak topics yet.</p></div>'
+            }
+          </div>
+        </article>
+      </div>
+    </div>
+  `;
+}
+
+function modeProgressRow(item) {
+  return `
+    <div class="mode-progress-row">
+      <div>
+        <strong>${MODES[item.mode].shortName}</strong>
+        <span>${item.attempts} attempt${item.attempts === 1 ? "" : "s"}</span>
+      </div>
+      <div><span>Latest</span><strong>${scoreValue(item.latest)}</strong></div>
+      <div><span>Best</span><strong>${scoreValue(item.best)}</strong></div>
+      <div><span>Change</span><strong class="${deltaClass(item.improvement)}">${deltaValue(item.improvement)}</strong></div>
+    </div>
+  `;
 }
 
 render();
