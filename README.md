@@ -42,6 +42,7 @@ For future feature work, use this default workflow unless the task explicitly sa
 - Multiple-choice, true/false, multi-select, and scenario self-scoring
 - Immediate explanations and sample strong scenario answers
 - Results summary with weak topics and recommendations
+- Progress dashboard with per-mode trends and recurring weak topics
 - Study topics page
 - LocalStorage result history
 - Responsive mobile and desktop layout
