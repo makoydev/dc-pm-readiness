@@ -57,6 +57,10 @@ globalThis.__quizApi = {
   getRecentQuestionIds,
   selectAttemptQuestions,
   questionsByIds,
+  selectFlashcards,
+  flashcardAnswer,
+  flashcardDetail,
+  flashcardSummary,
   getWeakTopics,
   resultLabel,
   recommendation,
@@ -81,6 +85,7 @@ test("renders the required three mode cards on initial load", () => {
   assert.match(api.renderedHome, /5 per attempt/);
   assert.match(api.renderedHome, /20 scenario bank/);
   assert.match(api.renderedHome, /Timed Practice/);
+  assert.match(api.renderedHome, /Start Flashcards/);
 });
 
 test("scores objective question types correctly", () => {
@@ -254,6 +259,40 @@ test("formats timer values and calculates timed result metadata", () => {
   assert.equal(result.timedOutCount, 1);
   assert.equal(result.totalTimedSeconds, 255);
   assert.equal(result.percentage, 42);
+});
+
+test("selects flashcard decks and formats expected answers", () => {
+  const api = loadQuizApi();
+  const easyDeck = api.selectFlashcards("easy", () => 0.2, 4);
+  const multiSelect = api.QUESTIONS.find((question) => question.id === "medium-ops-003");
+  const scenario = api.QUESTIONS.find((question) => question.id === "hard-live-001");
+
+  assert.equal(easyDeck.length, 4);
+  assert.equal(easyDeck.every((question) => question.difficulty === "easy"), true);
+  assert.equal(api.flashcardAnswer(api.QUESTIONS.find((question) => question.id === "easy-power-001")), "Uninterruptible Power Supply");
+  assert.match(api.flashcardAnswer(multiSelect), /Approved MOP/);
+  assert.match(api.flashcardAnswer(scenario), /Strong answer should cover/);
+  assert.match(api.flashcardDetail(scenario), /capacity and redundancy margin/);
+});
+
+test("summarizes flashcard session review topics", () => {
+  const api = loadQuizApi();
+  const session = {
+    cards: [
+      { id: "q1", topic: "power" },
+      { id: "q2", topic: "cooling" },
+      { id: "q3", topic: "power" },
+    ],
+    known: ["q1"],
+    review: ["q2", "q3"],
+  };
+
+  const summary = api.flashcardSummary(session);
+
+  assert.equal(summary.total, 3);
+  assert.equal(summary.knownCount, 1);
+  assert.equal(summary.reviewCount, 2);
+  assert.equal(JSON.stringify(summary.reviewTopics), JSON.stringify(["cooling", "power"]));
 });
 
 test("returns expected readiness labels at boundaries", () => {

@@ -37,6 +37,7 @@ For future feature work, use this default workflow unless the task explicitly sa
 - Randomized question attempts
 - Recent-question rotation for Hardest Mode when enough unseen scenarios are available
 - Timed interview practice for Hardest Mode scenarios
+- Flashcard mode with randomized decks and review tracking
 - Retry-missed flow from results and history
 - Multiple-choice, true/false, multi-select, and scenario self-scoring
 - Immediate explanations and sample strong scenario answers

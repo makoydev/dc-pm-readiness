@@ -35,6 +35,8 @@ const MODES = {
   },
 };
 
+const FLASHCARD_DECK_SIZE = 12;
+
 const STUDY_TOPICS = {
   Power: [
     "Utility feed",
@@ -1024,6 +1026,7 @@ const state = {
   view: "home",
   mode: null,
   quiz: null,
+  flashcards: null,
   lastResult: null,
   timerId: null,
 };
@@ -1040,6 +1043,8 @@ function icon(name) {
     play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7z"/></svg>',
     chart:
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-5"/><path d="M12 16V8"/><path d="M16 16v-3"/></svg>',
+    cards:
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="13" height="15" rx="2"/><path d="M8 3h10a2 2 0 0 1 2 2v12"/><path d="M8 11h5"/><path d="M8 15h4"/></svg>',
     study:
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
     home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>',
@@ -1118,9 +1123,91 @@ function selectAttemptQuestions(mode, history = getHistory(), randomizer = Math.
   return shuffle(source, randomizer).slice(0, config.attemptSize);
 }
 
+function getFlashcardPool(mode = "all") {
+  if (mode === "all") return QUESTIONS;
+  return getQuestionPool(mode);
+}
+
+function selectFlashcards(mode = "all", randomizer = Math.random, limit = FLASHCARD_DECK_SIZE) {
+  return shuffle(getFlashcardPool(mode), randomizer).slice(0, limit);
+}
+
+function flashcardAnswer(question) {
+  if (isScenario(question)) {
+    return `Strong answer should cover: ${question.rubric.join("; ")}`;
+  }
+  if (isMulti(question)) {
+    return question.correctAnswers.join(", ");
+  }
+  return question.correctAnswer;
+}
+
+function flashcardDetail(question) {
+  if (isScenario(question)) return question.sampleStrongAnswer;
+  return question.explanation;
+}
+
 function questionsByIds(questionIds) {
   const wanted = new Set(questionIds);
   return QUESTIONS.filter((question) => wanted.has(question.id));
+}
+
+function createFlashcardSession(cards, mode = "all") {
+  state.flashcards = {
+    mode,
+    cards,
+    index: 0,
+    flipped: false,
+    known: [],
+    review: [],
+    startedAt: new Date().toISOString(),
+  };
+  navigate("flashcards");
+}
+
+function startFlashcards(mode = "all") {
+  const cards = selectFlashcards(mode);
+  if (!cards.length) return;
+  createFlashcardSession(cards, mode);
+}
+
+function currentFlashcard() {
+  return state.flashcards.cards[state.flashcards.index];
+}
+
+function flipFlashcard() {
+  state.flashcards.flipped = !state.flashcards.flipped;
+  render();
+}
+
+function markFlashcard(outcome) {
+  const session = state.flashcards;
+  const card = currentFlashcard();
+  if (outcome === "known") {
+    session.known.push(card.id);
+  } else {
+    session.review.push(card.id);
+  }
+  if (session.index < session.cards.length - 1) {
+    session.index += 1;
+    session.flipped = false;
+    render();
+    return;
+  }
+  navigate("flashcard-results");
+}
+
+function flashcardSummary(session = state.flashcards) {
+  return {
+    total: session.cards.length,
+    knownCount: session.known.length,
+    reviewCount: session.review.length,
+    reviewTopics: [...new Set(
+      session.cards
+        .filter((card) => session.review.includes(card.id))
+        .map((card) => card.topic),
+    )],
+  };
 }
 
 function createQuiz(mode, questions, source = "standard", options = {}) {
@@ -1469,6 +1556,7 @@ function shell(content) {
             </span>
           </button>
           <nav class="nav-actions" aria-label="Main navigation">
+            <button class="btn btn-ghost" data-action="flashcards">${icon("cards")} Flashcards</button>
             <button class="btn btn-ghost" data-action="study">${icon("study")} Study</button>
             <button class="btn btn-ghost" data-action="history">${icon("chart")} Results</button>
           </nav>
@@ -1487,6 +1575,9 @@ function bindGlobalActions() {
   document.querySelectorAll("[data-action='study']").forEach((button) => {
     button.addEventListener("click", () => navigate("study"));
   });
+  document.querySelectorAll("[data-action='flashcards']").forEach((button) => {
+    button.addEventListener("click", () => startFlashcards());
+  });
   document.querySelectorAll("[data-action='history']").forEach((button) => {
     button.addEventListener("click", () => navigate("history"));
   });
@@ -1494,6 +1585,8 @@ function bindGlobalActions() {
 
 function render() {
   if (state.view === "quiz") return renderQuiz();
+  if (state.view === "flashcards") return renderFlashcards();
+  if (state.view === "flashcard-results") return renderFlashcardResults();
   if (state.view === "results") return renderResults(state.lastResult);
   if (state.view === "study") return renderStudy();
   if (state.view === "history") return renderHistory();
@@ -1541,12 +1634,27 @@ function renderHome() {
           .join("")}
       </div>
     </section>
+
+    <section class="practice-band">
+      <div>
+        <p class="eyebrow">Fast review</p>
+        <h2>Run a flashcard deck before your next scored attempt.</h2>
+        <p>Flip through randomized prompts from the question bank, then mark each one as known or needing review.</p>
+      </div>
+      <div class="card-actions">
+        <button class="btn btn-primary" data-start-flashcards="all">${icon("cards")} Start Flashcards</button>
+        <button class="btn" data-start-flashcards="hard">${icon("alert")} Hardest Only</button>
+      </div>
+    </section>
   `);
   document.querySelectorAll("[data-start-mode]").forEach((button) => {
     button.addEventListener("click", () => startQuiz(button.dataset.startMode));
   });
   document.querySelectorAll("[data-start-timed-mode]").forEach((button) => {
     button.addEventListener("click", () => startTimedQuiz(button.dataset.startTimedMode));
+  });
+  document.querySelectorAll("[data-start-flashcards]").forEach((button) => {
+    button.addEventListener("click", () => startFlashcards(button.dataset.startFlashcards));
   });
 }
 
@@ -1825,6 +1933,114 @@ function renderResults(result) {
   });
   document.querySelectorAll("[data-start-mode]").forEach((button) => {
     button.addEventListener("click", () => startQuiz(button.dataset.startMode));
+  });
+}
+
+function renderFlashcards() {
+  const session = state.flashcards;
+  if (!session) return renderHome();
+  const card = currentFlashcard();
+  const progress = Math.round(((session.index + 1) / session.cards.length) * 100);
+  const modeLabel = session.mode === "all" ? "All Topics" : MODES[session.mode].name;
+  shell(`
+    <section class="quiz-layout">
+      <article class="card flashcard-card">
+        <div class="progress-wrap">
+          <div class="progress-meta">
+            <span>${modeLabel} Flashcards</span>
+            <span>Card ${session.index + 1} of ${session.cards.length}</span>
+          </div>
+          <div class="progress" aria-label="Flashcard progress"><span style="width:${progress}%"></span></div>
+        </div>
+        <div class="flashcard-surface ${session.flipped ? "flipped" : ""}">
+          <p class="eyebrow">${titleCase(card.topic)} · ${card.difficulty}</p>
+          <h1 class="question-text">${card.question}</h1>
+          ${
+            session.flipped
+              ? `
+                <div class="flashcard-answer">
+                  <strong>Answer</strong>
+                  <p>${flashcardAnswer(card)}</p>
+                  <strong>Why it matters</strong>
+                  <p>${flashcardDetail(card)}</p>
+                </div>
+                <ul class="topic-list">
+                  ${card.tags.map((tag) => `<li>${tag}</li>`).join("")}
+                </ul>
+              `
+              : '<p class="lead">Think through the answer, then flip the card to compare against the expected points.</p>'
+          }
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-primary" data-flip-card>${session.flipped ? `${icon("next")} Hide Answer` : `${icon("cards")} Flip Card`}</button>
+          <button class="btn" data-mark-card="review" ${session.flipped ? "" : "disabled"}>${icon("study")} Review</button>
+          <button class="btn" data-mark-card="known" ${session.flipped ? "" : "disabled"}>${icon("next")} Know It</button>
+          <button class="btn" data-action="home">Exit</button>
+        </div>
+      </article>
+      <aside class="card side-panel" aria-label="Flashcard status">
+        <h3>Session Status</h3>
+        <dl>
+          <div><dt>Reviewed</dt><dd>${session.known.length + session.review.length}/${session.cards.length}</dd></div>
+          <div><dt>Known</dt><dd>${session.known.length}</dd></div>
+          <div><dt>Review</dt><dd>${session.review.length}</dd></div>
+          <div><dt>Deck</dt><dd>${modeLabel}</dd></div>
+        </dl>
+      </aside>
+    </section>
+  `);
+  const flip = document.querySelector("[data-flip-card]");
+  if (flip) flip.addEventListener("click", flipFlashcard);
+  document.querySelectorAll("[data-mark-card]").forEach((button) => {
+    button.addEventListener("click", () => markFlashcard(button.dataset.markCard));
+  });
+}
+
+function renderFlashcardResults() {
+  const session = state.flashcards;
+  if (!session) return renderHome();
+  const summary = flashcardSummary(session);
+  const modeLabel = session.mode === "all" ? "All Topics" : MODES[session.mode].name;
+  shell(`
+    <section class="results-grid">
+      <article class="card results-card">
+        <p class="eyebrow">${modeLabel} Flashcards</p>
+        <h1 class="question-text">Flashcard Summary</h1>
+        <div class="status-grid">
+          <div class="metric"><span>Total Cards</span><strong>${summary.total}</strong></div>
+          <div class="metric"><span>Known</span><strong>${summary.knownCount}</strong></div>
+          <div class="metric"><span>Review</span><strong>${summary.reviewCount}</strong></div>
+          <div class="metric"><span>Known Rate</span><strong>${Math.round((summary.knownCount / summary.total) * 100)}%</strong></div>
+        </div>
+        <div class="card-actions" style="margin-top:18px">
+          <button class="btn btn-primary" data-start-flashcards="${session.mode}">${icon("cards")} Restart Deck</button>
+          <button class="btn" data-start-flashcards="hard">${icon("alert")} Hardest Deck</button>
+          <button class="btn" data-action="study">${icon("study")} Study Topics</button>
+        </div>
+      </article>
+      <article class="card results-card">
+        <h2>Review Topics</h2>
+        <div class="weak-list">
+          ${
+            summary.reviewTopics.length
+              ? summary.reviewTopics
+                  .map(
+                    (topic) => `
+                      <div class="weak-topic">
+                        <strong>${titleCase(topic)}</strong>
+                        <span>Marked for review during this flashcard session.</span>
+                      </div>
+                    `,
+                  )
+                  .join("")
+              : '<div class="empty-state"><p>No review topics in this deck.</p></div>'
+          }
+        </div>
+      </article>
+    </section>
+  `);
+  document.querySelectorAll("[data-start-flashcards]").forEach((button) => {
+    button.addEventListener("click", () => startFlashcards(button.dataset.startFlashcards));
   });
 }
 

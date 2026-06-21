@@ -230,6 +230,28 @@ h3 {
   gap: 16px;
 }
 
+.practice-band {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  margin-top: 28px;
+  padding: 22px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.practice-band h2 {
+  max-width: 680px;
+}
+
+.practice-band p:not(.eyebrow) {
+  max-width: 720px;
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
 .card {
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -381,6 +403,7 @@ h3 {
 }
 
 .quiz-card,
+.flashcard-card,
 .results-card,
 .study-card,
 .history-card {
@@ -460,6 +483,34 @@ h3 {
 .answer-option.incorrect {
   border-color: var(--danger);
   background: var(--danger-soft);
+}
+
+.flashcard-surface {
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: 18px 0;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.flashcard-surface.flipped {
+  justify-content: flex-start;
+  background: var(--surface-strong);
+}
+
+.flashcard-answer {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+  line-height: 1.55;
+}
+
+.flashcard-answer p {
+  margin-bottom: 8px;
 }
 
 .choice-mark {
@@ -740,6 +791,11 @@ h3 {
     grid-template-columns: 1fr;
   }
 
+  .practice-band {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .side-panel {
     position: static;
   }
@@ -777,6 +833,7 @@ h3 {
   }
 
   .quiz-card,
+  .flashcard-card,
   .results-card,
   .study-card,
   .history-card {
