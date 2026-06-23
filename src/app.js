@@ -36,6 +36,22 @@ const MODES = {
 };
 
 const FLASHCARD_DECK_SIZE = 12;
+const DAILY_DRILL_MODE = {
+  mode: "daily",
+  name: "Daily 10-Question Drill",
+  shortName: "Daily",
+  icon: "calendar",
+  attemptSize: 10,
+  threshold: 70,
+  next: null,
+  description:
+    "A date-seeded mixed practice set with Easy, Medium, and Hardest prompts for daily readiness maintenance.",
+};
+const DAILY_DRILL_PLAN = {
+  easy: 4,
+  medium: 4,
+  hard: 2,
+};
 
 const STUDY_TOPICS = {
   Power: [
@@ -1096,8 +1112,35 @@ function shuffle(items, randomizer = Math.random) {
   return copy;
 }
 
+function formatDateKey(value = new Date()) {
+  if (typeof value === "string") return value.slice(0, 10);
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function seededRandom(seed) {
+  let hash = 2166136261;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash ^= seed.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return () => {
+    hash += 0x6d2b79f5;
+    let t = hash;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 function getQuestionPool(mode) {
   return QUESTIONS.filter((question) => question.difficulty === mode);
+}
+
+function getModeConfig(mode) {
+  return mode === DAILY_DRILL_MODE.mode ? DAILY_DRILL_MODE : MODES[mode];
 }
 
 function getModeQuestionCount(mode) {
@@ -1121,6 +1164,13 @@ function selectAttemptQuestions(mode, history = getHistory(), randomizer = Math.
   const source = freshPool.length >= config.attemptSize ? freshPool : pool;
 
   return shuffle(source, randomizer).slice(0, config.attemptSize);
+}
+
+function selectDailyDrillQuestions(dateKey = formatDateKey()) {
+  const selected = Object.entries(DAILY_DRILL_PLAN).flatMap(([mode, count]) =>
+    shuffle(getQuestionPool(mode), seededRandom(`${dateKey}:${mode}`)).slice(0, count),
+  );
+  return shuffle(selected, seededRandom(`${dateKey}:daily-order`));
 }
 
 function getFlashcardPool(mode = "all") {

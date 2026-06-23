@@ -56,6 +56,8 @@ globalThis.__quizApi = {
   getModeQuestionCount,
   getRecentQuestionIds,
   selectAttemptQuestions,
+  selectDailyDrillQuestions,
+  formatDateKey,
   questionsByIds,
   selectFlashcards,
   flashcardAnswer,
@@ -153,6 +155,25 @@ test("avoids recent hard questions when enough fresh scenarios exist", () => {
 
   assert.equal(selected.length, api.MODES.hard.attemptSize);
   assert.equal(selectedIds.some((id) => recentQuestionIds.includes(id)), false);
+});
+
+test("selects a deterministic mixed daily drill by date", () => {
+  const api = loadQuizApi();
+  const first = api.selectDailyDrillQuestions("2026-06-23");
+  const repeat = api.selectDailyDrillQuestions("2026-06-23");
+  const nextDay = api.selectDailyDrillQuestions("2026-06-24");
+  const byDifficulty = first.reduce((counts, question) => {
+    counts[question.difficulty] = (counts[question.difficulty] || 0) + 1;
+    return counts;
+  }, {});
+
+  assert.equal(api.formatDateKey(new Date(2026, 5, 23)), "2026-06-23");
+  assert.equal(first.length, 10);
+  assert.equal(byDifficulty.easy, 4);
+  assert.equal(byDifficulty.medium, 4);
+  assert.equal(byDifficulty.hard, 2);
+  assert.equal(JSON.stringify(first.map((question) => question.id)), JSON.stringify(repeat.map((question) => question.id)));
+  assert.notEqual(JSON.stringify(first.map((question) => question.id)), JSON.stringify(nextDay.map((question) => question.id)));
 });
 
 test("looks up missed questions by stored result IDs", () => {
