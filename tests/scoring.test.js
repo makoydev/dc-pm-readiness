@@ -90,6 +90,7 @@ test("renders the required three mode cards on initial load", () => {
   assert.match(api.renderedHome, /5 per attempt/);
   assert.match(api.renderedHome, /20 scenario bank/);
   assert.match(api.renderedHome, /Timed Practice/);
+  assert.match(api.renderedHome, /Daily Drill/);
   assert.match(api.renderedHome, /Start Flashcards/);
 });
 
@@ -235,6 +236,43 @@ test("builds result labels, weak topics, and recommendations", () => {
   assert.match(result.recommendation, /Use the study topics page before retrying this mode/);
 });
 
+test("builds daily drill result metadata and recommendations", () => {
+  const api = loadQuizApi();
+  const quiz = {
+    mode: "daily",
+    source: "daily",
+    dailyDateKey: "2026-06-23",
+    questions: [{ id: "easy-power-001" }, { id: "medium-ops-001" }],
+    responses: [
+      {
+        questionId: "easy-power-001",
+        topic: "power",
+        tags: ["UPS"],
+        selected: ["Uninterruptible Power Supply"],
+        correct: true,
+        score: 1,
+        maxScore: 1,
+      },
+      {
+        questionId: "medium-ops-001",
+        topic: "operations",
+        tags: ["MOP"],
+        selected: ["Wrong"],
+        correct: false,
+        score: 0,
+        maxScore: 1,
+      },
+    ],
+  };
+
+  const result = api.buildResult(quiz);
+
+  assert.equal(result.modeName, "Daily 10-Question Drill");
+  assert.equal(result.dailyDateKey, "2026-06-23");
+  assert.equal(result.label, "Needs a lighter review");
+  assert.match(result.recommendation, /Use flashcards or study topics before the next daily drill/);
+});
+
 test("formats timer values and calculates timed result metadata", () => {
   const api = loadQuizApi();
   const quiz = {
@@ -372,4 +410,5 @@ test("returns expected readiness labels at boundaries", () => {
   assert.equal(api.resultLabel("easy", 70), "Decent foundation");
   assert.equal(api.resultLabel("medium", 85), "Ready for Hardest Mode");
   assert.equal(api.resultLabel("hard", 95), "Senior-level judgment");
+  assert.equal(api.resultLabel("daily", 85), "Strong daily readiness");
 });

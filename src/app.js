@@ -1061,6 +1061,8 @@ function icon(name) {
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-5"/><path d="M12 16V8"/><path d="M16 16v-3"/></svg>',
     cards:
       '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="13" height="15" rx="2"/><path d="M8 3h10a2 2 0 0 1 2 2v12"/><path d="M8 11h5"/><path d="M8 15h4"/></svg>',
+    calendar:
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4"/><path d="M16 2v4"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/></svg>',
     study:
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
     home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>',
@@ -1266,6 +1268,7 @@ function createQuiz(mode, questions, source = "standard", options = {}) {
     mode,
     questions,
     source,
+    dailyDateKey: options.dailyDateKey || null,
     index: 0,
     selected: [],
     textAnswer: "",
@@ -1290,6 +1293,13 @@ function startQuiz(mode) {
   createQuiz(mode, questions);
 }
 
+function startDailyDrill(date = new Date()) {
+  const dailyDateKey = formatDateKey(date);
+  createQuiz(DAILY_DRILL_MODE.mode, selectDailyDrillQuestions(dailyDateKey), "daily", {
+    dailyDateKey,
+  });
+}
+
 function startTimedQuiz(mode) {
   if (!MODES[mode].timedSeconds) return startQuiz(mode);
   const questions = selectAttemptQuestions(mode);
@@ -1300,7 +1310,12 @@ function startTimedQuiz(mode) {
 }
 
 function startMissedQuiz(mode, questionIds) {
-  const questions = shuffle(questionsByIds(questionIds).filter((question) => question.difficulty === mode));
+  const missedQuestions = questionsByIds(questionIds);
+  const questions = shuffle(
+    mode === DAILY_DRILL_MODE.mode
+      ? missedQuestions
+      : missedQuestions.filter((question) => question.difficulty === mode),
+  );
   if (!questions.length) return;
   createQuiz(mode, questions, "missed");
 }
@@ -1505,7 +1520,7 @@ function buildResult(quiz) {
   return {
     id: `result-${Date.now()}`,
     mode: quiz.mode,
-    modeName: MODES[quiz.mode].name,
+    modeName: getModeConfig(quiz.mode).name,
     percentage,
     totalScore,
     maxScore,
@@ -1517,6 +1532,7 @@ function buildResult(quiz) {
       .filter((response) => !response.correct)
       .map((response) => response.questionId),
     source: quiz.source,
+    dailyDateKey: quiz.dailyDateKey,
     timed: Boolean(quiz.timer?.enabled),
     timedSecondsPerQuestion: quiz.timer?.secondsPerQuestion || null,
     timedOutCount: quiz.responses.filter((response) => response.timedOut).length,
@@ -1622,6 +1638,12 @@ function summarizeProgress(history) {
 }
 
 function resultLabel(mode, score) {
+  if (mode === DAILY_DRILL_MODE.mode) {
+    if (score < 50) return "Reset with fundamentals";
+    if (score < 70) return "Needs a lighter review";
+    if (score < 85) return "Solid daily practice";
+    return "Strong daily readiness";
+  }
   if (mode === "easy") {
     if (score < 50) return "Start with fundamentals";
     if (score < 70) return "Basic exposure, but not interview-ready";
@@ -1645,8 +1667,13 @@ function recommendation(mode, score, weakTopics) {
   const weak = weakTopics.length
     ? `Focus next on ${weakTopics.map((item) => titleCase(item.topic)).join(", ")}.`
     : "Keep practicing across power, cooling, operations, and stakeholder scenarios.";
-  if (score >= 85 && MODES[mode].next) {
-    return `${weak} You are ready to try ${MODES[MODES[mode].next].name}.`;
+  if (mode === DAILY_DRILL_MODE.mode) {
+    if (score >= 70) return `${weak} Keep the daily drill going and use scored modes for deeper checks.`;
+    return `${weak} Use flashcards or study topics before the next daily drill.`;
+  }
+  const nextMode = getModeConfig(mode).next;
+  if (score >= 85 && nextMode) {
+    return `${weak} You are ready to try ${getModeConfig(nextMode).name}.`;
   }
   if (score >= 70) return `${weak} Retake this mode once more before moving up.`;
   return `${weak} Use the study topics page before retrying this mode.`;
@@ -1695,6 +1722,7 @@ function shell(content) {
             </span>
           </button>
           <nav class="nav-actions" aria-label="Main navigation">
+            <button class="btn btn-ghost" data-action="daily">${icon("calendar")} Daily</button>
             <button class="btn btn-ghost" data-action="flashcards">${icon("cards")} Flashcards</button>
             <button class="btn btn-ghost" data-action="study">${icon("study")} Study</button>
             <button class="btn btn-ghost" data-action="history">${icon("chart")} Results</button>
@@ -1713,6 +1741,9 @@ function bindGlobalActions() {
   });
   document.querySelectorAll("[data-action='study']").forEach((button) => {
     button.addEventListener("click", () => navigate("study"));
+  });
+  document.querySelectorAll("[data-action='daily']").forEach((button) => {
+    button.addEventListener("click", () => startDailyDrill());
   });
   document.querySelectorAll("[data-action='flashcards']").forEach((button) => {
     button.addEventListener("click", () => startFlashcards());
@@ -1754,7 +1785,7 @@ function renderHome() {
         <div class="status-grid">
           <div class="metric"><span>Attempts</span><strong>${history.length}</strong></div>
           <div class="metric"><span>Best Score</span><strong>${best === null ? "None" : `${best}%`}</strong></div>
-          <div class="metric"><span>Latest Mode</span><strong>${latest ? MODES[latest.mode].shortName : "Start"}</strong></div>
+          <div class="metric"><span>Latest Mode</span><strong>${latest ? getModeConfig(latest.mode).shortName : "Start"}</strong></div>
           <div class="metric"><span>Weakest Topic</span><strong>${weakest ? titleCase(weakest.topic) : "None"}</strong></div>
         </div>
       </aside>
@@ -1781,6 +1812,7 @@ function renderHome() {
         <p>Flip through randomized prompts from the question bank, then mark each one as known or needing review.</p>
       </div>
       <div class="card-actions">
+        <button class="btn btn-primary" data-start-daily>${icon("calendar")} Daily Drill</button>
         <button class="btn btn-primary" data-start-flashcards="all">${icon("cards")} Start Flashcards</button>
         <button class="btn" data-start-flashcards="hard">${icon("alert")} Hardest Only</button>
       </div>
@@ -1794,6 +1826,9 @@ function renderHome() {
   });
   document.querySelectorAll("[data-start-flashcards]").forEach((button) => {
     button.addEventListener("click", () => startFlashcards(button.dataset.startFlashcards));
+  });
+  document.querySelectorAll("[data-start-daily]").forEach((button) => {
+    button.addEventListener("click", () => startDailyDrill());
   });
 }
 
@@ -1836,7 +1871,7 @@ function renderQuiz() {
       <article class="card quiz-card">
         <div class="progress-wrap">
           <div class="progress-meta">
-            <span>${MODES[quiz.mode].name}</span>
+            <span>${getModeConfig(quiz.mode).name}</span>
             <span>Question ${quiz.index + 1} of ${quiz.questions.length}</span>
           </div>
           <div class="progress" aria-label="Quiz progress"><span style="width:${progress}%"></span></div>
@@ -1974,8 +2009,8 @@ function quizStatus() {
     <dl>
       <div><dt>Answered</dt><dd>${completed}/${state.quiz.questions.length}</dd></div>
       <div><dt>Current Score</dt><dd>${liveScore}</dd></div>
-      <div><dt>Mode</dt><dd>${MODES[state.quiz.mode].shortName}</dd></div>
-      <div><dt>Pass Target</dt><dd>${MODES[state.quiz.mode].threshold}%</dd></div>
+      <div><dt>Mode</dt><dd>${getModeConfig(state.quiz.mode).shortName}</dd></div>
+      <div><dt>Pass Target</dt><dd>${getModeConfig(state.quiz.mode).threshold}%</dd></div>
       ${timerRows}
     </dl>
   `;
@@ -2003,7 +2038,7 @@ function bindQuestionEvents(question) {
 function renderResults(result) {
   const effectiveResult = result || getHistory()[0];
   if (!effectiveResult) return renderHistory();
-  const nextMode = MODES[effectiveResult.mode].next;
+  const nextMode = getModeConfig(effectiveResult.mode).next;
   const missedCount = effectiveResult.missedQuestionIds?.length || 0;
   const timedSummary = effectiveResult.timed
     ? `
@@ -2034,7 +2069,7 @@ function renderResults(result) {
               ? `<button class="btn" data-retry-missed="${effectiveResult.id}">${icon("next")} Retry Missed (${missedCount})</button>`
               : ""
           }
-          ${nextMode ? `<button class="btn" data-start-mode="${nextMode}">${icon("next")} Try ${MODES[nextMode].shortName}</button>` : ""}
+          ${nextMode ? `<button class="btn" data-start-mode="${nextMode}">${icon("next")} Try ${getModeConfig(nextMode).shortName}</button>` : ""}
           <button class="btn" data-action="study">${icon("study")} Study Topics</button>
         </div>
       </article>
@@ -2061,7 +2096,13 @@ function renderResults(result) {
     </section>
   `);
   document.querySelectorAll("[data-retry]").forEach((button) => {
-    button.addEventListener("click", () => startQuiz(button.dataset.retry));
+    button.addEventListener("click", () => {
+      if (button.dataset.retry === DAILY_DRILL_MODE.mode) {
+        startDailyDrill(effectiveResult.dailyDateKey || new Date());
+        return;
+      }
+      startQuiz(button.dataset.retry);
+    });
   });
   document.querySelectorAll("[data-retry-missed]").forEach((button) => {
     button.addEventListener("click", () => {
