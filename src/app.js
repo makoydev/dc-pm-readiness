@@ -2071,9 +2071,15 @@ function feedbackBlock(question) {
     return `
       <div class="feedback ${percent >= 70 ? "good" : "bad"}">
         <strong>${response.timedOut ? "Time expired. " : ""}Rubric score: ${response.score} of ${response.maxScore} (${percent}%).</strong>
-        <div class="sample-answer">
-          <strong>Sample strong answer</strong>
-          <p>${question.sampleStrongAnswer}</p>
+        <div class="answer-comparison">
+          <div class="sample-answer weak">
+            <strong>Sample weak answer</strong>
+            <p>${question.sampleWeakAnswer}</p>
+          </div>
+          <div class="sample-answer strong">
+            <strong>Sample strong answer</strong>
+            <p>${question.sampleStrongAnswer}</p>
+          </div>
         </div>
       </div>
     `;

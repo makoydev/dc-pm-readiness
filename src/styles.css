@@ -650,10 +650,32 @@ h3 {
   background: var(--danger-soft);
 }
 
-.sample-answer {
+.answer-comparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid rgba(96, 112, 134, 0.22);
+}
+
+.sample-answer {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.sample-answer p {
+  margin-bottom: 0;
+}
+
+.sample-answer.weak {
+  border-color: #f2b8b5;
+}
+
+.sample-answer.strong {
+  border-color: #a9dfbf;
 }
 
 .side-panel {
@@ -900,6 +922,10 @@ h3 {
   }
 
   .timer-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .answer-comparison {
     grid-template-columns: 1fr;
   }
 
