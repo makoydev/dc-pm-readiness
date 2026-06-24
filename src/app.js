@@ -1114,6 +1114,8 @@ function icon(name) {
       '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="13" height="15" rx="2"/><path d="M8 3h10a2 2 0 0 1 2 2v12"/><path d="M8 11h5"/><path d="M8 15h4"/></svg>',
     calendar:
       '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4"/><path d="M16 2v4"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/></svg>',
+    briefcase:
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/><path d="M12 12v2"/></svg>',
     study:
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
     home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>',
@@ -1379,6 +1381,10 @@ function startDailyDrill(date = new Date()) {
   });
 }
 
+function startMockInterview() {
+  createQuiz(MOCK_INTERVIEW_MODE.mode, selectMockInterviewQuestions(), "mock");
+}
+
 function startTimedQuiz(mode) {
   if (!MODES[mode].timedSeconds) return startQuiz(mode);
   const questions = selectAttemptQuestions(mode);
@@ -1391,7 +1397,7 @@ function startTimedQuiz(mode) {
 function startMissedQuiz(mode, questionIds) {
   const missedQuestions = questionsByIds(questionIds);
   const questions = shuffle(
-    mode === DAILY_DRILL_MODE.mode
+    mode === DAILY_DRILL_MODE.mode || mode === MOCK_INTERVIEW_MODE.mode
       ? missedQuestions
       : missedQuestions.filter((question) => question.difficulty === mode),
   );
@@ -1763,6 +1769,12 @@ function summarizeProgress(history) {
 }
 
 function resultLabel(mode, score) {
+  if (mode === MOCK_INTERVIEW_MODE.mode) {
+    if (score < 50) return "Interview fundamentals not ready";
+    if (score < 70) return "Needs stronger live-site judgment";
+    if (score < 85) return "Interview practice ready";
+    return "Strong mock interview";
+  }
   if (mode === DAILY_DRILL_MODE.mode) {
     if (score < 50) return "Reset with fundamentals";
     if (score < 70) return "Needs a lighter review";
@@ -1795,6 +1807,10 @@ function recommendation(mode, score, weakTopics) {
   if (mode === DAILY_DRILL_MODE.mode) {
     if (score >= 70) return `${weak} Keep the daily drill going and use scored modes for deeper checks.`;
     return `${weak} Use flashcards or study topics before the next daily drill.`;
+  }
+  if (mode === MOCK_INTERVIEW_MODE.mode) {
+    if (score >= 70) return `${weak} Repeat mock interviews until your answers consistently cover risk, escalation, options, and documentation.`;
+    return `${weak} Review the weak and strong answer comparisons, then retry missed mock scenarios.`;
   }
   const nextMode = getModeConfig(mode).next;
   if (score >= 85 && nextMode) {
@@ -1851,6 +1867,7 @@ function shell(content) {
             </span>
           </button>
           <nav class="nav-actions" aria-label="Main navigation">
+            <button class="btn btn-ghost" data-action="mock">${icon("briefcase")} Mock</button>
             <button class="btn btn-ghost" data-action="daily">${icon("calendar")} Daily</button>
             <button class="btn btn-ghost" data-action="flashcards">${icon("cards")} Flashcards</button>
             <button class="btn btn-ghost" data-action="study">${icon("study")} Study</button>
@@ -1870,6 +1887,9 @@ function bindGlobalActions() {
   });
   document.querySelectorAll("[data-action='study']").forEach((button) => {
     button.addEventListener("click", () => navigate("study"));
+  });
+  document.querySelectorAll("[data-action='mock']").forEach((button) => {
+    button.addEventListener("click", () => startMockInterview());
   });
   document.querySelectorAll("[data-action='daily']").forEach((button) => {
     button.addEventListener("click", () => startDailyDrill());
@@ -1944,6 +1964,7 @@ function renderHome() {
         <p>Flip through randomized prompts from the question bank, then mark each one as known or needing review.</p>
       </div>
       <div class="card-actions">
+        <button class="btn btn-primary" data-start-mock>${icon("briefcase")} Mock Interview</button>
         <button class="btn btn-primary" data-start-daily>${icon("calendar")} Daily Drill</button>
         <button class="btn btn-primary" data-start-flashcards="all">${icon("cards")} Start Flashcards</button>
         <button class="btn" data-start-flashcards="hard">${icon("alert")} Hardest Only</button>
@@ -1961,6 +1982,9 @@ function renderHome() {
   });
   document.querySelectorAll("[data-start-daily]").forEach((button) => {
     button.addEventListener("click", () => startDailyDrill());
+  });
+  document.querySelectorAll("[data-start-mock]").forEach((button) => {
+    button.addEventListener("click", () => startMockInterview());
   });
 }
 

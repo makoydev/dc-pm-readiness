@@ -93,6 +93,7 @@ test("renders the required three mode cards on initial load", () => {
   assert.match(api.renderedHome, /5 per attempt/);
   assert.match(api.renderedHome, /20 scenario bank/);
   assert.match(api.renderedHome, /Timed Practice/);
+  assert.match(api.renderedHome, /Mock Interview/);
   assert.match(api.renderedHome, /Daily Drill/);
   assert.match(api.renderedHome, /Daily Streak/);
   assert.match(api.renderedHome, /Start Flashcards/);
@@ -298,6 +299,41 @@ test("builds daily drill result metadata and recommendations", () => {
   assert.match(result.recommendation, /Use flashcards or study topics before the next daily drill/);
 });
 
+test("builds mock interview result labels and recommendations", () => {
+  const api = loadQuizApi();
+  const quiz = {
+    mode: "mock",
+    source: "mock",
+    questions: [{ id: "hard-live-001" }, { id: "hard-power-001" }],
+    responses: [
+      {
+        questionId: "hard-live-001",
+        topic: "live-site risk",
+        tags: ["risk"],
+        selected: ["Validate actual cooling capacity and redundancy margin"],
+        correct: false,
+        score: 1,
+        maxScore: 6,
+      },
+      {
+        questionId: "hard-power-001",
+        topic: "live-site risk",
+        tags: ["UPS"],
+        selected: ["Pause and assess the abnormal result before continuing"],
+        correct: false,
+        score: 1,
+        maxScore: 6,
+      },
+    ],
+  };
+
+  const result = api.buildResult(quiz);
+
+  assert.equal(result.modeName, "Mock Interview");
+  assert.equal(result.label, "Interview fundamentals not ready");
+  assert.match(result.recommendation, /Review the weak and strong answer comparisons/);
+});
+
 test("formats timer values and calculates timed result metadata", () => {
   const api = loadQuizApi();
   const quiz = {
@@ -470,4 +506,5 @@ test("returns expected readiness labels at boundaries", () => {
   assert.equal(api.resultLabel("medium", 85), "Ready for Hardest Mode");
   assert.equal(api.resultLabel("hard", 95), "Senior-level judgment");
   assert.equal(api.resultLabel("daily", 85), "Strong daily readiness");
+  assert.equal(api.resultLabel("mock", 85), "Strong mock interview");
 });
