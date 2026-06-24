@@ -673,6 +673,8 @@ const QUESTIONS = [
     ],
     sampleStrongAnswer:
       "I would pause the go-live decision until capacity and redundancy margin are validated with facilities and operations. I would bring sales, service delivery, network, and management into a facts-based decision, then present options such as phasing, reducing density, moving racks, or delaying go-live. I would document the risk, owner, customer impact, and final decision.",
+    sampleWeakAnswer:
+      "I would proceed because the customer is strategic and sales needs the date protected. I would ask operations to monitor the hall closely and deal with issues if alarms appear.",
     tags: ["cooling", "go-live", "stakeholder management", "risk"],
   },
   {
@@ -692,6 +694,8 @@ const QUESTIONS = [
     ],
     sampleStrongAnswer:
       "I would stop at the hold point and ask the technical owners to assess the abnormal result against the MOP criteria. If redundancy or customer load is exposed beyond the approved threshold, we rollback or abort and escalate. Schedule pressure should not override uptime or safety, and the deviation must be documented.",
+    sampleWeakAnswer:
+      "I would continue because the maintenance window is already approved and the vendor probably understands the test result. I would note the abnormal result after the work is complete.",
     tags: ["UPS", "MOP", "rollback", "uptime"],
   },
   {
@@ -711,6 +715,8 @@ const QUESTIONS = [
     ],
     sampleStrongAnswer:
       "I would validate the real schedule impact against the critical path, then confirm every dependency for server delivery. I would request a recovery plan, add resources or resequence if approved, and communicate risk early to service delivery and stakeholders. If go-live is threatened, I would escalate with options instead of hiding the delay.",
+    sampleWeakAnswer:
+      "I would tell the contractor to work faster and wait until the server delivery date to see whether the cabling is actually finished. I would avoid escalating until the delay is confirmed.",
     tags: ["vendor delay", "critical path", "deployment"],
   },
   {
@@ -730,6 +736,8 @@ const QUESTIONS = [
     ],
     sampleStrongAnswer:
       "I would not accept 'probably harmless' as the basis to continue. I would pause, get operations and engineering to verify the alarm, check any impact to redundancy or customer load, and follow the MOP/EOP escalation path. The continue or rollback decision must use approved criteria and be documented.",
+    sampleWeakAnswer:
+      "I would trust the vendor if they say the alarm is probably harmless and continue the maintenance so the window is not wasted. I would only involve operations if a customer impact happens.",
     tags: ["alarm", "incident response", "EOP"],
   },
   {
@@ -749,6 +757,8 @@ const QUESTIONS = [
     ],
     sampleStrongAnswer:
       "I would turn the request into a controlled change with measured data, not a blanket adjustment. We need rack-level thermal margin, customer density, equipment limits, monitoring, and rollback criteria. A pilot or phased change can improve efficiency without sacrificing uptime, but operations and management must own the risk decision.",
+    sampleWeakAnswer:
+      "I would raise the setpoints because better PUE is a leadership priority. If the high-density zone gets warm, operations can lower the temperature again later.",
     tags: ["PUE", "cooling", "sustainability", "uptime"],
   },
   {
@@ -768,6 +778,8 @@ const QUESTIONS = [
     ],
     sampleStrongAnswer:
       "I would classify the finding against acceptance criteria and resilience impact. If failover is compromised, it should not be waved through as a minor punch item. I would align commissioning, facilities, operations, vendor, and sponsor on remediation, retest, schedule impact, and any formal exception with risk ownership.",
+    sampleWeakAnswer:
+      "I would accept it as a punch-list item because handover is only a week away. The generator issue can be corrected after operations takes over the site.",
     tags: ["commissioning", "handover", "generator", "risk"],
   },
   {
@@ -787,6 +799,8 @@ const QUESTIONS = [
     ],
     sampleStrongAnswer:
       "I would confirm the customer commitment and then verify the operational prerequisites: security, escorts, access approvals, safety and permits. I would not bypass controls. I would offer options such as approved overtime, a different slot, or phased preparation, and escalate through governance if the business wants to fund or accept an exception.",
+    sampleWeakAnswer:
+      "I would let the customer install during the weekend and ask security to be flexible because the customer is strategic. The missing escort coverage can be sorted out on the day.",
     tags: ["access control", "customer", "stakeholder management"],
   },
   {
@@ -806,6 +820,8 @@ const QUESTIONS = [
     ],
     sampleStrongAnswer:
       "I would separate the commercial promise from the physical capacity decision. The team needs to confirm power, cooling, redundancy, floor loading, and any effect on other customers before accepting the higher rack density. I would present options such as phased growth, relocation to a more suitable zone, or a revised deployment plan, then document the risk and customer communication.",
+    sampleWeakAnswer:
+      "I would approve the 9 kW request because the contract allows growth. Facilities can adjust cooling later if the higher rack density creates a problem.",
     tags: ["capacity", "rack density", "power", "cooling"],
   },
   {
@@ -825,6 +841,8 @@ const QUESTIONS = [
     ],
     sampleStrongAnswer:
       "I would define what is truly ready and what is blocked. Some local installation checks may continue, but production go-live cannot be claimed until required connectivity is delivered and validated. I would escalate with the carrier and network owners, publish a recovery plan, and keep the customer informed on partial readiness versus full service readiness.",
+    sampleWeakAnswer:
+      "I would let the customer start go-live testing and call the deployment mostly complete because the racks have power. The carrier connection can be treated as a separate follow-up.",
     tags: ["cross-connect", "network", "go-live", "service delivery"],
   },
   {
@@ -844,6 +862,8 @@ const QUESTIONS = [
     ],
     sampleStrongAnswer:
       "I would treat access control as part of site resilience, not an administrative obstacle. I would confirm the repair urgency, then work through approved identity, escort, permit, and security exception processes. If leadership wants an exception, it must go through the proper governance path with explicit risk ownership, not an informal override.",
+    sampleWeakAnswer:
+      "I would allow entry because the request came from a senior executive and the repair is critical. I would ask the vendor to get the badge paperwork finished afterward.",
     tags: ["physical security", "access control", "governance"],
   },
   {
@@ -863,6 +883,8 @@ const QUESTIONS = [
     ],
     sampleStrongAnswer:
       "I would not approve the mode just because it improves WUE. We need data on load, weather, humidity, equipment limits, and thermal margin. I would propose a controlled pilot with monitoring and rollback criteria, then expand only if facilities and operations agree the resilience margin remains acceptable.",
+    sampleWeakAnswer:
+      "I would enable the water-saving mode because WUE improvement is important and the risk only happens during peak load. Facilities can switch back if temperatures rise.",
     tags: ["WUE", "sustainability", "cooling", "thermal margin"],
   },
   {
@@ -882,6 +904,8 @@ const QUESTIONS = [
     ],
     sampleStrongAnswer:
       "I would not make a live-site electrical decision on lowest price alone. The cheaper option needs technical qualification, references, supervision, method controls, and risk assessment. I would present the risk-adjusted cost and schedule trade-off to sponsors, including the cost of rework, safety exposure, and uptime risk.",
+    sampleWeakAnswer:
+      "I would choose the cheaper subcontractor to bring the budget back under control. Since the schedule is tight, I would rely on close supervision instead of spending more time on qualification.",
     tags: ["budget", "procurement", "vendor risk", "live-site"],
   },
   {
@@ -901,6 +925,8 @@ const QUESTIONS = [
     ],
     sampleStrongAnswer:
       "I would argue for a proportionate post-incident review even without customer outage. A near miss can expose weaknesses in monitoring, maintenance, procedure, or response. We should capture the timeline and contributing factors, agree preventive actions with owners, and close them so the same weakness does not become a real outage later.",
+    sampleWeakAnswer:
+      "I would skip the RCA because there was no outage and the immediate issue was restored quickly. The team can mention it informally in the next operations meeting.",
     tags: ["RCA", "near miss", "incident response", "lessons learned"],
   },
   {
@@ -920,6 +946,8 @@ const QUESTIONS = [
     ],
     sampleStrongAnswer:
       "I would not add work simply because the opportunity exists. The new task may change risk, duration, rollback, or affected systems, so it needs technical assessment and change approval. Unless it is urgent and approved through governance, I would defer it to a separate planned activity.",
+    sampleWeakAnswer:
+      "I would let the vendor add the extra task because the equipment is already isolated and it saves a future visit. I would update the paperwork after the window.",
     tags: ["change control", "MOP", "scope", "risk"],
   },
   {
@@ -939,6 +967,8 @@ const QUESTIONS = [
     ],
     sampleStrongAnswer:
       "I would keep the team focused on restoring service and isolating the fault with evidence. We should communicate clear status and next steps while preserving logs, timestamps, and test results. If ownership or SLA interpretation becomes commercial, I would escalate through account governance rather than letting technical teams argue blame during the incident.",
+    sampleWeakAnswer:
+      "I would tell the customer the issue is probably with their equipment so the SLA clock should not count against us. The technical teams can settle ownership after go-live testing.",
     tags: ["SLA", "customer communication", "fault isolation", "escalation"],
   },
   {
@@ -958,6 +988,8 @@ const QUESTIONS = [
     ],
     sampleStrongAnswer:
       "I would require the temporary switchboard option to go through engineering and operations review. Different protection settings can affect selectivity, compliance, commissioning, and live-site risk. I would present launch-date, cost, and resilience trade-offs to the sponsor and proceed only with an approved technical and governance decision.",
+    sampleWeakAnswer:
+      "I would accept the temporary switchboard to protect the launch date because the vendor offered it as an alternative. We can tune the protection settings during commissioning.",
     tags: ["procurement", "switchgear", "engineering change", "schedule"],
   },
   {
@@ -977,6 +1009,8 @@ const QUESTIONS = [
     ],
     sampleStrongAnswer:
       "I would not start until rollback points and irreversible steps are clearly agreed. The cutover should be phased with dependency maps, validation checks, hold points, and named decision owners. If rollback becomes impossible after a batch, everyone must understand and approve that threshold before crossing it.",
+    sampleWeakAnswer:
+      "I would start the migration and ask the teams to decide rollback during the window if something goes wrong. Waiting for full agreement could cause the overnight slot to be missed.",
     tags: ["migration", "rollback", "cutover", "live-site"],
   },
   {
@@ -996,6 +1030,8 @@ const QUESTIONS = [
     ],
     sampleStrongAnswer:
       "I would treat the fuel issue as a resilience risk even if the electrical test passed. Generator availability depends on fuel quality and runtime confidence. I would involve facilities, operations, and the fuel vendor to assess impact, define remediation and retest needs, and escalate if redundancy or emergency runtime is compromised.",
+    sampleWeakAnswer:
+      "I would accept the load test result as passed and leave fuel polishing until the next scheduled maintenance. Since the generator ran electrically, the immediate risk is low.",
     tags: ["generator", "fuel", "load testing", "resilience"],
   },
   {
@@ -1015,6 +1051,8 @@ const QUESTIONS = [
     ],
     sampleStrongAnswer:
       "I would require the plan to explicitly manage the degraded monitoring period. We need to know which alarms and controls are unavailable, who is watching manually, how issues are escalated, and when rollback is triggered. The work can proceed only if operations accepts the temporary controls and restoration is validated.",
+    sampleWeakAnswer:
+      "I would proceed because the window is low risk and facilities said manual monitoring is available. Thirty minutes without alarms is acceptable if people are watching the room.",
     tags: ["BMS", "monitoring", "alarms", "operations"],
   },
   {
@@ -1034,6 +1072,8 @@ const QUESTIONS = [
     ],
     sampleStrongAnswer:
       "I would compare the two activities against clear criteria: uptime risk, safety, customer impact, deadlines, and dependencies. Then I would look for delegation, sequencing, or another qualified engineer. If both commitments are truly at risk, I would escalate with options and trade-offs rather than letting the loudest stakeholder win.",
+    sampleWeakAnswer:
+      "I would assign the engineer to whichever team escalated first or has the louder stakeholder. The other team can wait because both activities cannot happen at once.",
     tags: ["resource conflict", "prioritization", "stakeholder management"],
   },
 ];

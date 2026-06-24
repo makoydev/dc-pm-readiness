@@ -140,6 +140,8 @@ test("keeps a broad hard-mode scenario bank for concept practice", () => {
     assert.equal(question.type, "scenario_text");
     assert.equal(question.rubric.length >= 6, true);
     assert.equal(question.sampleStrongAnswer.length > 80, true);
+    assert.equal(question.sampleWeakAnswer.length > 80, true);
+    assert.notEqual(question.sampleWeakAnswer, question.sampleStrongAnswer);
   });
 });
 
