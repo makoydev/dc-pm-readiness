@@ -38,6 +38,7 @@ For future feature work, use this default workflow unless the task explicitly sa
 - Recent-question rotation for Hardest Mode when enough unseen scenarios are available
 - Timed interview practice for Hardest Mode scenarios
 - Daily 10-question mixed drill with repeatable date-based selection
+- Study streaks based on completed daily drill days
 - Flashcard mode with randomized decks and review tracking
 - Retry-missed flow from results and history
 - Multiple-choice, true/false, multi-select, and scenario self-scoring
