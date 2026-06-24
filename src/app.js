@@ -1755,6 +1755,10 @@ function deltaClass(value) {
   return value > 0 ? "trend-up" : "trend-down";
 }
 
+function dayCount(value) {
+  return `${value} day${value === 1 ? "" : "s"}`;
+}
+
 function shell(content) {
   app.innerHTML = `
     <div class="app-shell">
@@ -1816,6 +1820,7 @@ function renderHome() {
     : null;
   const latest = history[0];
   const weakest = history.flatMap((item) => item.weakTopics || [])[0];
+  const dailyStreak = summarizeDailyStreak(history);
   shell(`
     <section class="hero">
       <div>
@@ -1833,6 +1838,8 @@ function renderHome() {
           <div class="metric"><span>Best Score</span><strong>${best === null ? "None" : `${best}%`}</strong></div>
           <div class="metric"><span>Latest Mode</span><strong>${latest ? getModeConfig(latest.mode).shortName : "Start"}</strong></div>
           <div class="metric"><span>Weakest Topic</span><strong>${weakest ? titleCase(weakest.topic) : "None"}</strong></div>
+          <div class="metric"><span>Daily Streak</span><strong>${dayCount(dailyStreak.currentStreak)}</strong></div>
+          <div class="metric"><span>Best Streak</span><strong>${dayCount(dailyStreak.bestStreak)}</strong></div>
         </div>
       </aside>
     </section>
@@ -2361,6 +2368,8 @@ function progressDashboard(progress) {
         <div class="metric"><span>Best Score</span><strong>${scoreValue(progress.bestScore)}</strong></div>
         <div class="metric"><span>Average Score</span><strong>${scoreValue(progress.averageScore)}</strong></div>
         <div class="metric"><span>Recent Change</span><strong class="${deltaClass(progress.recentDelta)}">${deltaValue(progress.recentDelta)}</strong></div>
+        <div class="metric"><span>Daily Streak</span><strong>${dayCount(progress.dailyStreak.currentStreak)}</strong></div>
+        <div class="metric"><span>Daily Days</span><strong>${progress.dailyStreak.completedDays}</strong></div>
       </div>
       <div class="dashboard-grid">
         <article class="dashboard-panel">

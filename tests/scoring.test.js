@@ -93,6 +93,7 @@ test("renders the required three mode cards on initial load", () => {
   assert.match(api.renderedHome, /20 scenario bank/);
   assert.match(api.renderedHome, /Timed Practice/);
   assert.match(api.renderedHome, /Daily Drill/);
+  assert.match(api.renderedHome, /Daily Streak/);
   assert.match(api.renderedHome, /Start Flashcards/);
 });
 
