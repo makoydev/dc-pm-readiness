@@ -43,6 +43,7 @@ For future feature work, use this default workflow unless the task explicitly sa
 - Retry-missed flow from results and history
 - Multiple-choice, true/false, multi-select, and scenario self-scoring
 - Immediate explanations and sample strong scenario answers
+- Sample weak scenario answers for interview answer comparison
 - Results summary with weak topics and recommendations
 - Progress dashboard with per-mode trends and recurring weak topics
 - Study topics page
