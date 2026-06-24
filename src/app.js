@@ -52,6 +52,17 @@ const DAILY_DRILL_PLAN = {
   medium: 4,
   hard: 2,
 };
+const MOCK_INTERVIEW_MODE = {
+  mode: "mock",
+  name: "Mock Interview",
+  shortName: "Mock",
+  icon: "briefcase",
+  attemptSize: 3,
+  threshold: 70,
+  next: null,
+  description:
+    "A short interview-style set of hard scenarios that tests live-site judgment under realistic questioning pressure.",
+};
 
 const STUDY_TOPICS = {
   Power: [
@@ -1182,7 +1193,9 @@ function getQuestionPool(mode) {
 }
 
 function getModeConfig(mode) {
-  return mode === DAILY_DRILL_MODE.mode ? DAILY_DRILL_MODE : MODES[mode];
+  if (mode === DAILY_DRILL_MODE.mode) return DAILY_DRILL_MODE;
+  if (mode === MOCK_INTERVIEW_MODE.mode) return MOCK_INTERVIEW_MODE;
+  return MODES[mode];
 }
 
 function getModeQuestionCount(mode) {
@@ -1213,6 +1226,32 @@ function selectDailyDrillQuestions(dateKey = formatDateKey()) {
     shuffle(getQuestionPool(mode), seededRandom(`${dateKey}:${mode}`)).slice(0, count),
   );
   return shuffle(selected, seededRandom(`${dateKey}:daily-order`));
+}
+
+function selectMockInterviewQuestions(history = getHistory(), randomizer = Math.random) {
+  const recentIds = getRecentQuestionIds(history, MOCK_INTERVIEW_MODE.mode, 2);
+  const hardQuestions = getQuestionPool("hard");
+  const source = hardQuestions.filter((question) => !recentIds.has(question.id));
+  const pool = source.length >= MOCK_INTERVIEW_MODE.attemptSize ? source : hardQuestions;
+  const selected = [];
+  const usedTopics = new Set();
+
+  shuffle(pool, randomizer).forEach((question) => {
+    if (selected.length >= MOCK_INTERVIEW_MODE.attemptSize) return;
+    if (usedTopics.has(question.topic)) return;
+    selected.push(question);
+    usedTopics.add(question.topic);
+  });
+
+  if (selected.length < MOCK_INTERVIEW_MODE.attemptSize) {
+    shuffle(pool, randomizer).forEach((question) => {
+      if (selected.length >= MOCK_INTERVIEW_MODE.attemptSize) return;
+      if (selected.some((item) => item.id === question.id)) return;
+      selected.push(question);
+    });
+  }
+
+  return selected;
 }
 
 function getFlashcardPool(mode = "all") {

@@ -57,6 +57,7 @@ globalThis.__quizApi = {
   getRecentQuestionIds,
   selectAttemptQuestions,
   selectDailyDrillQuestions,
+  selectMockInterviewQuestions,
   formatDateKey,
   questionsByIds,
   selectFlashcards,
@@ -180,6 +181,25 @@ test("selects a deterministic mixed daily drill by date", () => {
   assert.equal(byDifficulty.hard, 2);
   assert.equal(JSON.stringify(first.map((question) => question.id)), JSON.stringify(repeat.map((question) => question.id)));
   assert.notEqual(JSON.stringify(first.map((question) => question.id)), JSON.stringify(nextDay.map((question) => question.id)));
+});
+
+test("selects diverse hard scenarios for mock interviews", () => {
+  const api = loadQuizApi();
+  const hardQuestions = api.QUESTIONS.filter((question) => question.difficulty === "hard");
+  const recentQuestionIds = hardQuestions.slice(0, 6).map((question) => question.id);
+  const history = [
+    { mode: "mock", questionIds: recentQuestionIds.slice(0, 3) },
+    { mode: "mock", questionIds: recentQuestionIds.slice(3, 6) },
+  ];
+
+  const selected = api.selectMockInterviewQuestions(history, () => 0.99);
+  const selectedIds = selected.map((question) => question.id);
+  const selectedTopics = new Set(selected.map((question) => question.topic));
+
+  assert.equal(selected.length, 3);
+  assert.equal(selected.every((question) => question.difficulty === "hard"), true);
+  assert.equal(selectedTopics.size, 3);
+  assert.equal(selectedIds.some((id) => recentQuestionIds.includes(id)), false);
 });
 
 test("looks up missed questions by stored result IDs", () => {
