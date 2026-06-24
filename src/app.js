@@ -1622,6 +1622,51 @@ function summarizeWeakTopics(history, limit = 5) {
     .slice(0, limit);
 }
 
+function dateKeyToUtcDay(dateKey) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return Math.floor(Date.UTC(year, month - 1, day) / 86400000);
+}
+
+function utcDayToDateKey(dayNumber) {
+  return new Date(dayNumber * 86400000).toISOString().slice(0, 10);
+}
+
+function getDailyDrillDateKeys(history) {
+  return [...new Set(
+    history
+      .filter((result) => result.mode === DAILY_DRILL_MODE.mode || result.source === "daily")
+      .map((result) => result.dailyDateKey || (result.completedAt ? formatDateKey(result.completedAt) : null))
+      .filter(Boolean),
+  )].sort();
+}
+
+function summarizeDailyStreak(history, todayKey = formatDateKey()) {
+  const dateKeys = getDailyDrillDateKeys(history);
+  const completedDays = new Set(dateKeys.map(dateKeyToUtcDay));
+  const today = dateKeyToUtcDay(todayKey);
+  let currentStreak = 0;
+  for (let day = today; completedDays.has(day); day -= 1) {
+    currentStreak += 1;
+  }
+
+  let bestStreak = 0;
+  let activeStreak = 0;
+  let previousDay = null;
+  dateKeys.map(dateKeyToUtcDay).forEach((day) => {
+    activeStreak = previousDay !== null && day === previousDay + 1 ? activeStreak + 1 : 1;
+    bestStreak = Math.max(bestStreak, activeStreak);
+    previousDay = day;
+  });
+
+  return {
+    currentStreak,
+    bestStreak,
+    completedDays: dateKeys.length,
+    lastDailyDateKey: dateKeys[dateKeys.length - 1] || null,
+    nextDailyDateKey: utcDayToDateKey(today + 1),
+  };
+}
+
 function summarizeProgress(history) {
   const scores = history.map((result) => result.percentage);
   const latest = history[0] || null;
@@ -1634,6 +1679,7 @@ function summarizeProgress(history) {
     recentDelta: latest && previous ? latest.percentage - previous.percentage : null,
     byMode: Object.keys(MODES).map((mode) => summarizeModeProgress(history, mode)),
     weakTopics: summarizeWeakTopics(history),
+    dailyStreak: summarizeDailyStreak(history),
   };
 }
 

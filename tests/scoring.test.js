@@ -66,6 +66,8 @@ globalThis.__quizApi = {
   getWeakTopics,
   summarizeModeProgress,
   summarizeWeakTopics,
+  getDailyDrillDateKeys,
+  summarizeDailyStreak,
   summarizeProgress,
   resultLabel,
   recommendation,
@@ -401,6 +403,40 @@ test("summarizes saved-result progress by mode and weak topics", () => {
   assert.equal(progress.averageScore, 72);
   assert.equal(progress.recentDelta, -8);
   assert.equal(progress.byMode.find((item) => item.mode === "hard").attempts, 0);
+});
+
+test("summarizes daily drill streaks from unique daily dates", () => {
+  const api = loadQuizApi();
+  const history = [
+    { mode: "daily", source: "daily", dailyDateKey: "2026-06-24", percentage: 80 },
+    { mode: "daily", source: "daily", dailyDateKey: "2026-06-24", percentage: 60 },
+    { mode: "daily", source: "daily", dailyDateKey: "2026-06-23", percentage: 75 },
+    { mode: "medium", source: "standard", completedAt: "2026-06-22T12:00:00.000Z", percentage: 90 },
+    { mode: "daily", source: "daily", dailyDateKey: "2026-06-20", percentage: 82 },
+    { mode: "daily", source: "daily", dailyDateKey: "2026-06-19", percentage: 72 },
+  ];
+
+  const streak = api.summarizeDailyStreak(history, "2026-06-24");
+
+  assert.equal(JSON.stringify(api.getDailyDrillDateKeys(history)), JSON.stringify(["2026-06-19", "2026-06-20", "2026-06-23", "2026-06-24"]));
+  assert.equal(streak.currentStreak, 2);
+  assert.equal(streak.bestStreak, 2);
+  assert.equal(streak.completedDays, 4);
+  assert.equal(streak.lastDailyDateKey, "2026-06-24");
+  assert.equal(streak.nextDailyDateKey, "2026-06-25");
+});
+
+test("daily drill current streak is zero when today is missed", () => {
+  const api = loadQuizApi();
+  const history = [
+    { mode: "daily", source: "daily", dailyDateKey: "2026-06-23", percentage: 75 },
+    { mode: "daily", source: "daily", dailyDateKey: "2026-06-22", percentage: 82 },
+  ];
+
+  const streak = api.summarizeDailyStreak(history, "2026-06-24");
+
+  assert.equal(streak.currentStreak, 0);
+  assert.equal(streak.bestStreak, 2);
 });
 
 test("returns expected readiness labels at boundaries", () => {
