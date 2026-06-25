@@ -792,6 +792,47 @@ h3 {
   margin-top: 4px;
 }
 
+.interview-feedback {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.feedback-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.feedback-summary-grid .metric strong {
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.dimension-list {
+  display: grid;
+  gap: 10px;
+}
+
+.dimension-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff;
+}
+
+.dimension-row span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 .trend-up {
   color: var(--success);
 }
@@ -922,6 +963,10 @@ h3 {
   }
 
   .timer-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .feedback-summary-grid {
     grid-template-columns: 1fr;
   }
 

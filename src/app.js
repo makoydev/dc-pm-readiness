@@ -2340,6 +2340,7 @@ function renderResults(result) {
               : '<div class="empty-state"><p>No weak topics in this attempt.</p></div>'
           }
         </div>
+        ${interviewFeedbackBlock(effectiveResult.interviewFeedback)}
       </article>
     </section>
   `);
@@ -2362,6 +2363,37 @@ function renderResults(result) {
   document.querySelectorAll("[data-start-mode]").forEach((button) => {
     button.addEventListener("click", () => startQuiz(button.dataset.startMode));
   });
+}
+
+function interviewFeedbackBlock(feedback) {
+  if (!feedback) return "";
+  const strengths = feedback.strengths.length ? feedback.strengths.join(", ") : "None yet";
+  const gaps = feedback.gaps.length ? feedback.gaps.join(", ") : "None";
+  return `
+    <section class="interview-feedback" aria-label="Interview feedback summary">
+      <h2>Interview Feedback</h2>
+      <div class="feedback-summary-grid">
+        <div class="metric"><span>Scenario Questions</span><strong>${feedback.scenarioCount}</strong></div>
+        <div class="metric"><span>Strengths</span><strong>${strengths}</strong></div>
+        <div class="metric"><span>Gaps</span><strong>${gaps}</strong></div>
+      </div>
+      <div class="dimension-list">
+        ${feedback.dimensions
+          .map(
+            (dimension) => `
+              <div class="dimension-row">
+                <div>
+                  <strong>${dimension.label}</strong>
+                  <span>${dimension.covered}/${dimension.possible} rubric points covered</span>
+                </div>
+                <strong>${dimension.percentage}%</strong>
+              </div>
+            `,
+          )
+          .join("")}
+      </div>
+    </section>
+  `;
 }
 
 function renderFlashcards() {
