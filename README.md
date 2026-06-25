@@ -45,6 +45,7 @@ For future feature work, use this default workflow unless the task explicitly sa
 - Multiple-choice, true/false, multi-select, and scenario self-scoring
 - Immediate explanations and sample strong scenario answers
 - Sample weak scenario answers for interview answer comparison
+- Interview feedback summary by scenario-answer dimension
 - Results summary with weak topics and recommendations
 - Progress dashboard with per-mode trends and recurring weak topics
 - Study topics page
