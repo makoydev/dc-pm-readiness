@@ -65,6 +65,8 @@ globalThis.__quizApi = {
   flashcardDetail,
   flashcardSummary,
   getWeakTopics,
+  dimensionForRubricPoint,
+  buildInterviewFeedback,
   summarizeModeProgress,
   summarizeWeakTopics,
   getDailyDrillDateKeys,
@@ -128,6 +130,36 @@ test("uses rubric point counts for scenario scoring", () => {
   assert.equal(api.scoreFor(scenario, scenario.rubric.slice(0, 5)), 5);
   assert.equal(api.isCorrect(scenario, scenario.rubric.slice(0, 4)), false);
   assert.equal(api.isCorrect(scenario, scenario.rubric.slice(0, 5)), true);
+});
+
+test("builds interview feedback from checked scenario rubric points", () => {
+  const api = loadQuizApi();
+  const question = api.QUESTIONS.find((item) => item.id === "hard-live-001");
+  const responses = [
+    {
+      questionId: question.id,
+      selected: [
+        "Validate actual cooling capacity and redundancy margin",
+        "Involve facilities, operations, network, service delivery, and management",
+      ],
+      score: 2,
+      maxScore: 6,
+    },
+  ];
+
+  const feedback = api.buildInterviewFeedback(responses);
+
+  assert.equal(api.dimensionForRubricPoint("Document the decision and owner").label, "Documentation And Closure");
+  assert.equal(feedback.scenarioCount, 1);
+  assert.equal(feedback.dimensions.some((dimension) => dimension.label === "Technical Validation" && dimension.covered > 0), true);
+  assert.equal(feedback.dimensions.some((dimension) => dimension.label === "Stakeholder Alignment" && dimension.covered > 0), true);
+  assert.equal(feedback.gaps.includes("Documentation And Closure"), true);
+});
+
+test("does not build interview feedback for objective-only responses", () => {
+  const api = loadQuizApi();
+
+  assert.equal(api.buildInterviewFeedback([{ questionId: "easy-power-001", selected: [], score: 0, maxScore: 1 }]), null);
 });
 
 test("keeps a broad hard-mode scenario bank for concept practice", () => {
@@ -330,6 +362,7 @@ test("builds mock interview result labels and recommendations", () => {
   const result = api.buildResult(quiz);
 
   assert.equal(result.modeName, "Mock Interview");
+  assert.equal(result.interviewFeedback.scenarioCount, 2);
   assert.equal(result.label, "Interview fundamentals not ready");
   assert.match(result.recommendation, /Review the weak and strong answer comparisons/);
 });

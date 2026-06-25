@@ -63,6 +63,33 @@ const MOCK_INTERVIEW_MODE = {
   description:
     "A short interview-style set of hard scenarios that tests live-site judgment under realistic questioning pressure.",
 };
+const INTERVIEW_FEEDBACK_DIMENSIONS = [
+  {
+    key: "documentation",
+    label: "Documentation And Closure",
+    patterns: ["document", "record", "timeline", "evidence", "closure", "update", "track"],
+  },
+  {
+    key: "risk",
+    label: "Risk Control",
+    patterns: ["risk", "safety", "uptime", "resilience", "threshold", "impact"],
+  },
+  {
+    key: "technical",
+    label: "Technical Validation",
+    patterns: ["validate", "confirm", "check", "assess", "data", "capacity", "redundancy", "load", "thermal"],
+  },
+  {
+    key: "stakeholders",
+    label: "Stakeholder Alignment",
+    patterns: ["involve", "coordinate", "communicate", "stakeholder", "customer", "management", "operations"],
+  },
+  {
+    key: "options",
+    label: "Options And Rollback",
+    patterns: ["rollback", "option", "phase", "defer", "abort", "resequence", "mitigation", "pilot"],
+  },
+];
 
 const STUDY_TOPICS = {
   Power: [
@@ -1602,6 +1629,7 @@ function buildResult(quiz) {
   const incorrect = quiz.responses.filter((item) => !item.correct).length;
   const weakTopics = getWeakTopics(quiz.responses);
   const timedResponses = quiz.responses.filter((item) => typeof item.timedSecondsUsed === "number");
+  const interviewFeedback = buildInterviewFeedback(quiz.responses);
   return {
     id: `result-${Date.now()}`,
     mode: quiz.mode,
@@ -1623,6 +1651,7 @@ function buildResult(quiz) {
     timedOutCount: quiz.responses.filter((response) => response.timedOut).length,
     totalTimedSeconds: timedResponses.reduce((sum, item) => sum + item.timedSecondsUsed, 0),
     weakTopics,
+    interviewFeedback,
     label: resultLabel(quiz.mode, percentage),
     recommendation: recommendation(quiz.mode, percentage, weakTopics),
     completedAt: new Date().toISOString(),
@@ -1647,6 +1676,63 @@ function getWeakTopics(responses) {
     .filter((item) => item.percentage < 80 || item.misses > 0)
     .sort((a, b) => a.percentage - b.percentage)
     .slice(0, 5);
+}
+
+function dimensionForRubricPoint(point) {
+  const normalized = point.toLowerCase();
+  return (
+    INTERVIEW_FEEDBACK_DIMENSIONS.find((dimension) =>
+      dimension.patterns.some((pattern) => normalized.includes(pattern)),
+    ) || INTERVIEW_FEEDBACK_DIMENSIONS[0]
+  );
+}
+
+function buildInterviewFeedback(responses) {
+  const scenarioResponses = responses
+    .map((response) => ({
+      response,
+      question: QUESTIONS.find((question) => question.id === response.questionId),
+    }))
+    .filter((item) => item.question && isScenario(item.question));
+
+  if (!scenarioResponses.length) return null;
+
+  const byDimension = new Map(
+    INTERVIEW_FEEDBACK_DIMENSIONS.map((dimension) => [
+      dimension.key,
+      {
+        key: dimension.key,
+        label: dimension.label,
+        covered: 0,
+        possible: 0,
+      },
+    ]),
+  );
+
+  scenarioResponses.forEach(({ response, question }) => {
+    const selected = new Set(response.selected || []);
+    question.rubric.forEach((point) => {
+      const dimension = dimensionForRubricPoint(point);
+      const summary = byDimension.get(dimension.key);
+      summary.possible += 1;
+      if (selected.has(point)) summary.covered += 1;
+    });
+  });
+
+  const dimensions = [...byDimension.values()]
+    .filter((dimension) => dimension.possible > 0)
+    .map((dimension) => ({
+      ...dimension,
+      percentage: Math.round((dimension.covered / dimension.possible) * 100),
+    }))
+    .sort((a, b) => a.percentage - b.percentage);
+
+  return {
+    scenarioCount: scenarioResponses.length,
+    dimensions,
+    strengths: dimensions.filter((dimension) => dimension.percentage >= 70).map((dimension) => dimension.label),
+    gaps: dimensions.filter((dimension) => dimension.percentage < 70).map((dimension) => dimension.label),
+  };
 }
 
 function average(values) {
