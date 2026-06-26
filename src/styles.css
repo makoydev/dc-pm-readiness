@@ -549,6 +549,44 @@ h3 {
   background: var(--surface-strong);
 }
 
+.voice-panel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.voice-panel.listening {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.voice-panel.unsupported {
+  background: var(--surface-strong);
+}
+
+.voice-panel div {
+  min-width: 0;
+}
+
+.voice-panel strong,
+.voice-panel span {
+  display: block;
+}
+
+.voice-panel span {
+  min-height: 1.2em;
+  color: var(--muted);
+  font-size: 0.88rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .timer-panel {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -964,6 +1002,11 @@ h3 {
 
   .timer-panel {
     grid-template-columns: 1fr;
+  }
+
+  .voice-panel {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .feedback-summary-grid {

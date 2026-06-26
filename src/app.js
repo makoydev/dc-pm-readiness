@@ -1123,6 +1123,7 @@ const state = {
   flashcards: null,
   lastResult: null,
   timerId: null,
+  voiceRecognition: null,
 };
 
 const app = document.querySelector("#app");
@@ -1143,6 +1144,7 @@ function icon(name) {
       '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4"/><path d="M16 2v4"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/></svg>',
     briefcase:
       '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/><path d="M12 12v2"/></svg>',
+    mic: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a4 4 0 0 0 4-4V6a4 4 0 0 0-8 0v4a4 4 0 0 0 4 4z"/><path d="M19 10a7 7 0 0 1-14 0"/><path d="M12 17v4"/><path d="M8 21h8"/></svg>',
     study:
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
     home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>',
@@ -1154,6 +1156,7 @@ function icon(name) {
 }
 
 function navigate(view, data = {}) {
+  stopVoicePractice();
   if (view !== "quiz") stopTimer();
   state.view = view;
   Object.assign(state, data);
@@ -1165,6 +1168,23 @@ function stopTimer() {
   if (!state.timerId) return;
   clearInterval(state.timerId);
   state.timerId = null;
+}
+
+function stopVoicePractice() {
+  if (!state.voiceRecognition) return;
+  const recognition = state.voiceRecognition;
+  state.voiceRecognition = null;
+  recognition.onend = null;
+  recognition.onerror = null;
+  recognition.onresult = null;
+  try {
+    recognition.stop();
+  } catch {
+    // Recognition may already be stopped by the browser.
+  }
+  if (state.quiz?.voice) {
+    state.quiz.voice.listening = false;
+  }
 }
 
 function getSpeechRecognitionConstructor(host = window) {
@@ -1398,6 +1418,11 @@ function createQuiz(mode, questions, source = "standard", options = {}) {
     submitted: false,
     responses: [],
     startedAt: new Date().toISOString(),
+    voice: {
+      listening: false,
+      status: hasSpeechRecognition() ? "Ready" : "Unavailable",
+      interim: "",
+    },
     timer: timed
       ? {
           enabled: true,
@@ -1583,6 +1608,83 @@ function setTextAnswer(value) {
   state.quiz.textAnswer = value;
 }
 
+function setVoiceStatus(status, interim = "") {
+  if (!state.quiz?.voice) return;
+  state.quiz.voice.status = status;
+  state.quiz.voice.interim = interim;
+  const statusNode = document.querySelector("[data-voice-status]");
+  const interimNode = document.querySelector("[data-voice-interim]");
+  if (statusNode) statusNode.textContent = status;
+  if (interimNode) interimNode.textContent = interim;
+}
+
+function updateVoiceTranscript(transcript) {
+  if (!transcript || state.quiz.submitted) return;
+  state.quiz.textAnswer = appendTranscript(state.quiz.textAnswer, transcript);
+  const textarea = document.querySelector("[data-text-answer]");
+  if (textarea) textarea.value = state.quiz.textAnswer;
+}
+
+function startVoicePractice() {
+  if (state.quiz.submitted || state.voiceRecognition) return;
+  const Recognition = getSpeechRecognitionConstructor();
+  if (!Recognition) {
+    setVoiceStatus("Speech recognition unavailable");
+    return;
+  }
+  const recognition = new Recognition();
+  state.voiceRecognition = recognition;
+  state.quiz.voice.listening = true;
+  recognition.lang = "en-US";
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.onresult = (event) => {
+    let finalTranscript = "";
+    let interimTranscript = "";
+    for (let index = event.resultIndex; index < event.results.length; index += 1) {
+      const transcript = event.results[index][0].transcript;
+      if (event.results[index].isFinal) {
+        finalTranscript += transcript;
+      } else {
+        interimTranscript += transcript;
+      }
+    }
+    updateVoiceTranscript(finalTranscript);
+    setVoiceStatus("Listening", interimTranscript.trim());
+  };
+  recognition.onerror = () => {
+    state.voiceRecognition = null;
+    state.quiz.voice.listening = false;
+    setVoiceStatus("Voice input stopped");
+    render();
+  };
+  recognition.onend = () => {
+    state.voiceRecognition = null;
+    state.quiz.voice.listening = false;
+    setVoiceStatus("Ready");
+    render();
+  };
+  setVoiceStatus("Listening");
+  try {
+    recognition.start();
+    render();
+  } catch {
+    state.voiceRecognition = null;
+    state.quiz.voice.listening = false;
+    setVoiceStatus("Voice input unavailable");
+    render();
+  }
+}
+
+function toggleVoicePractice() {
+  if (state.voiceRecognition) {
+    stopVoicePractice();
+    render();
+    return;
+  }
+  startVoicePractice();
+}
+
 function recordResponse({ timedOut = false, now = Date.now() } = {}) {
   const question = currentQuestion();
   if (state.quiz.submitted) return;
@@ -1608,12 +1710,14 @@ function recordResponse({ timedOut = false, now = Date.now() } = {}) {
 
 function submitAnswer() {
   if (!state.quiz.selected.length) return;
+  stopVoicePractice();
   recordResponse();
   stopTimer();
   render();
 }
 
 function nextQuestion() {
+  stopVoicePractice();
   stopTimer();
   if (state.quiz.index < state.quiz.questions.length - 1) {
     state.quiz.index += 1;
@@ -2177,6 +2281,7 @@ function timerPanel() {
 function questionInput(question) {
   if (isScenario(question)) {
     return `
+      ${voicePracticePanel()}
       <textarea class="text-answer" data-text-answer placeholder="Draft your interview answer here. Then check the rubric points you covered." ${state.quiz.submitted ? "disabled" : ""}>${state.quiz.textAnswer}</textarea>
       <div class="rubric" aria-label="Self-scoring rubric">
         ${question.rubric
@@ -2201,6 +2306,24 @@ function questionInput(question) {
       ${question.options
         .map((option, index) => answerButton(question, option, index))
         .join("")}
+    </div>
+  `;
+}
+
+function voicePracticePanel() {
+  const supported = hasSpeechRecognition();
+  const listening = Boolean(state.quiz.voice?.listening);
+  const status = state.quiz.voice?.status || (supported ? "Ready" : "Unavailable");
+  const interim = state.quiz.voice?.interim || "";
+  return `
+    <div class="voice-panel ${listening ? "listening" : ""} ${supported ? "" : "unsupported"}">
+      <button class="btn" data-voice-toggle ${state.quiz.submitted || !supported ? "disabled" : ""}>
+        ${icon("mic")} ${listening ? "Stop Voice" : "Voice Practice"}
+      </button>
+      <div>
+        <strong data-voice-status>${supported ? status : "Speech recognition unavailable"}</strong>
+        <span data-voice-interim>${interim}</span>
+      </div>
     </div>
   `;
 }
@@ -2292,6 +2415,8 @@ function bindQuestionEvents(question) {
   if (textarea) {
     textarea.addEventListener("input", (event) => setTextAnswer(event.target.value));
   }
+  const voiceToggle = document.querySelector("[data-voice-toggle]");
+  if (voiceToggle) voiceToggle.addEventListener("click", toggleVoicePractice);
   const submit = document.querySelector("[data-submit]");
   if (submit) submit.addEventListener("click", submitAnswer);
   const next = document.querySelector("[data-next]");
