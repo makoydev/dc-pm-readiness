@@ -79,6 +79,9 @@ globalThis.__quizApi = {
   formatDuration,
   getTimerRemainingMs,
   getQuestionElapsedSeconds,
+  getSpeechRecognitionConstructor,
+  hasSpeechRecognition,
+  appendTranscript,
   renderedHome: app.innerHTML
 };`,
     context,
@@ -120,6 +123,20 @@ test("scores objective question types correctly", () => {
     true,
   );
   assert.equal(api.isCorrect(multiSelect, ["Approved MOP", "Rollback plan"]), false);
+});
+
+test("detects speech recognition support and appends transcripts", () => {
+  const api = loadQuizApi();
+  function SpeechRecognition() {}
+  function WebkitSpeechRecognition() {}
+
+  assert.equal(api.getSpeechRecognitionConstructor({ SpeechRecognition }), SpeechRecognition);
+  assert.equal(api.getSpeechRecognitionConstructor({ webkitSpeechRecognition: WebkitSpeechRecognition }), WebkitSpeechRecognition);
+  assert.equal(api.getSpeechRecognitionConstructor({}), null);
+  assert.equal(api.hasSpeechRecognition({ SpeechRecognition }), true);
+  assert.equal(api.hasSpeechRecognition({}), false);
+  assert.equal(api.appendTranscript("", " validate capacity "), "validate capacity");
+  assert.equal(api.appendTranscript("Pause work.", "Escalate with options."), "Pause work. Escalate with options.");
 });
 
 test("uses rubric point counts for scenario scoring", () => {

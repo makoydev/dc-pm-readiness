@@ -1167,6 +1167,21 @@ function stopTimer() {
   state.timerId = null;
 }
 
+function getSpeechRecognitionConstructor(host = window) {
+  return host.SpeechRecognition || host.webkitSpeechRecognition || null;
+}
+
+function hasSpeechRecognition(host = window) {
+  return Boolean(getSpeechRecognitionConstructor(host));
+}
+
+function appendTranscript(current, transcript) {
+  const cleanCurrent = current.trim();
+  const cleanTranscript = transcript.trim();
+  if (!cleanTranscript) return cleanCurrent;
+  return cleanCurrent ? `${cleanCurrent} ${cleanTranscript}` : cleanTranscript;
+}
+
 function getHistory() {
   try {
     return JSON.parse(localStorage.getItem("dcpm-results") || "[]");
