@@ -49,6 +49,7 @@ For future feature work, use this default workflow unless the task explicitly sa
 - Interview feedback summary by scenario-answer dimension
 - Results summary with weak topics and recommendations
 - Progress dashboard with per-mode trends and recurring weak topics
+- Admin question review statuses with local filtering
 - Study topics page
 - LocalStorage result history
 - Responsive mobile and desktop layout
