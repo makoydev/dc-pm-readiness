@@ -52,6 +52,12 @@ const DAILY_DRILL_PLAN = {
   medium: 4,
   hard: 2,
 };
+const QUESTION_REVIEW_STATUSES = {
+  unreviewed: "Unreviewed",
+  approved: "Approved",
+  needs_edit: "Needs Edit",
+  retired: "Retired",
+};
 const MOCK_INTERVIEW_MODE = {
   mode: "mock",
   name: "Mock Interview",
@@ -1220,6 +1226,35 @@ function clearHistory() {
   render();
 }
 
+function getReviewStatusMap() {
+  try {
+    return JSON.parse(localStorage.getItem("dcpm-question-review") || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function saveReviewStatusMap(statusMap) {
+  localStorage.setItem("dcpm-question-review", JSON.stringify(statusMap));
+}
+
+function getQuestionReviewStatus(question, statusMap = getReviewStatusMap()) {
+  const status = statusMap[question.id] || "unreviewed";
+  return QUESTION_REVIEW_STATUSES[status] ? status : "unreviewed";
+}
+
+function setQuestionReviewStatus(questionId, status) {
+  if (!QUESTION_REVIEW_STATUSES[status]) return;
+  const statusMap = getReviewStatusMap();
+  if (status === "unreviewed") {
+    delete statusMap[questionId];
+  } else {
+    statusMap[questionId] = status;
+  }
+  saveReviewStatusMap(statusMap);
+  render();
+}
+
 function shuffle(items, randomizer = Math.random) {
   const copy = [...items];
   for (let i = copy.length - 1; i > 0; i -= 1) {
@@ -1345,6 +1380,42 @@ function flashcardDetail(question) {
 function questionsByIds(questionIds) {
   const wanted = new Set(questionIds);
   return QUESTIONS.filter((question) => wanted.has(question.id));
+}
+
+function summarizeQuestionBank(questions = QUESTIONS, statusMap = getReviewStatusMap()) {
+  const byDifficulty = {};
+  const byStatus = Object.fromEntries(Object.keys(QUESTION_REVIEW_STATUSES).map((status) => [status, 0]));
+  questions.forEach((question) => {
+    byDifficulty[question.difficulty] = (byDifficulty[question.difficulty] || 0) + 1;
+    byStatus[getQuestionReviewStatus(question, statusMap)] += 1;
+  });
+  return {
+    total: questions.length,
+    byDifficulty,
+    byStatus,
+  };
+}
+
+function filterQuestionsForReview(
+  questions = QUESTIONS,
+  { difficulty = "all", status = "all", search = "" } = {},
+  statusMap = getReviewStatusMap(),
+) {
+  const term = search.trim().toLowerCase();
+  return questions.filter((question) => {
+    const matchesDifficulty = difficulty === "all" || question.difficulty === difficulty;
+    const matchesStatus = status === "all" || getQuestionReviewStatus(question, statusMap) === status;
+    const haystack = [
+      question.id,
+      question.topic,
+      question.type,
+      question.question,
+      ...(question.tags || []),
+    ]
+      .join(" ")
+      .toLowerCase();
+    return matchesDifficulty && matchesStatus && (!term || haystack.includes(term));
+  });
 }
 
 function createFlashcardSession(cards, mode = "all") {

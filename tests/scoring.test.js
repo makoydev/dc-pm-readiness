@@ -50,12 +50,16 @@ function loadQuizApi() {
 globalThis.__quizApi = {
   QUESTIONS,
   MODES,
+  QUESTION_REVIEW_STATUSES,
   isCorrect,
   scoreFor,
   maxScoreFor,
   getModeQuestionCount,
   getRecentQuestionIds,
   selectAttemptQuestions,
+  getQuestionReviewStatus,
+  summarizeQuestionBank,
+  filterQuestionsForReview,
   selectDailyDrillQuestions,
   selectMockInterviewQuestions,
   formatDateKey,
@@ -258,6 +262,35 @@ test("looks up missed questions by stored result IDs", () => {
 
   assert.equal(selected.length, 2);
   assert.equal(JSON.stringify(selected.map((question) => question.id)), JSON.stringify(["easy-power-001", "hard-live-001"]));
+});
+
+test("summarizes and filters question review status", () => {
+  const api = loadQuizApi();
+  const questions = [
+    api.QUESTIONS.find((question) => question.id === "easy-power-001"),
+    api.QUESTIONS.find((question) => question.id === "medium-ops-001"),
+    api.QUESTIONS.find((question) => question.id === "hard-live-001"),
+  ];
+  const statusMap = {
+    "easy-power-001": "approved",
+    "medium-ops-001": "needs_edit",
+    "hard-live-001": "retired",
+  };
+
+  const summary = api.summarizeQuestionBank(questions, statusMap);
+  const filteredByStatus = api.filterQuestionsForReview(questions, { status: "needs_edit" }, statusMap);
+  const filteredBySearch = api.filterQuestionsForReview(questions, { search: "cooling" }, statusMap);
+
+  assert.equal(api.QUESTION_REVIEW_STATUSES.approved, "Approved");
+  assert.equal(api.getQuestionReviewStatus(questions[0], statusMap), "approved");
+  assert.equal(api.getQuestionReviewStatus(questions[0], { "easy-power-001": "unknown" }), "unreviewed");
+  assert.equal(summary.total, 3);
+  assert.equal(summary.byDifficulty.easy, 1);
+  assert.equal(summary.byStatus.approved, 1);
+  assert.equal(summary.byStatus.needs_edit, 1);
+  assert.equal(summary.byStatus.retired, 1);
+  assert.equal(JSON.stringify(filteredByStatus.map((question) => question.id)), JSON.stringify(["medium-ops-001"]));
+  assert.equal(JSON.stringify(filteredBySearch.map((question) => question.id)), JSON.stringify(["hard-live-001"]));
 });
 
 test("builds result labels, weak topics, and recommendations", () => {
