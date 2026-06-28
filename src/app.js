@@ -1127,6 +1127,11 @@ const state = {
   mode: null,
   quiz: null,
   flashcards: null,
+  adminFilters: {
+    difficulty: "all",
+    status: "all",
+    search: "",
+  },
   lastResult: null,
   timerId: null,
   voiceRecognition: null,
@@ -1151,6 +1156,8 @@ function icon(name) {
     briefcase:
       '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/><path d="M12 12v2"/></svg>',
     mic: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a4 4 0 0 0 4-4V6a4 4 0 0 0-8 0v4a4 4 0 0 0 4 4z"/><path d="M19 10a7 7 0 0 1-14 0"/><path d="M12 17v4"/><path d="M8 21h8"/></svg>',
+    settings:
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/><path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.04.04a2 2 0 0 1-2.83 2.83l-.04-.04A1.8 1.8 0 0 0 15 19.4a1.8 1.8 0 0 0-1 .6l-.02.02a2 2 0 0 1-3.96 0L10 20a1.8 1.8 0 0 0-1-.6 1.8 1.8 0 0 0-1.98.36l-.04.04a2 2 0 0 1-2.83-2.83l.04-.04A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-.6-1l-.02-.02a2 2 0 0 1 0-3.96L4 10a1.8 1.8 0 0 0 .6-1 1.8 1.8 0 0 0-.36-1.98l-.04-.04a2 2 0 0 1 2.83-2.83l.04.04A1.8 1.8 0 0 0 9 4.6a1.8 1.8 0 0 0 1-.6l.02-.02a2 2 0 0 1 3.96 0L14 4a1.8 1.8 0 0 0 1 .6 1.8 1.8 0 0 0 1.98-.36l.04-.04a2 2 0 0 1 2.83 2.83l-.04.04A1.8 1.8 0 0 0 19.4 9a1.8 1.8 0 0 0 .6 1l.02.02a2 2 0 0 1 0 3.96L20 14a1.8 1.8 0 0 0-.6 1z"/></svg>',
     study:
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
     home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>',
@@ -2148,6 +2155,7 @@ function shell(content) {
             <button class="btn btn-ghost" data-action="flashcards">${icon("cards")} Flashcards</button>
             <button class="btn btn-ghost" data-action="study">${icon("study")} Study</button>
             <button class="btn btn-ghost" data-action="history">${icon("chart")} Results</button>
+            <button class="btn btn-ghost" data-action="admin">${icon("settings")} Admin</button>
           </nav>
         </div>
       </header>
@@ -2176,6 +2184,9 @@ function bindGlobalActions() {
   document.querySelectorAll("[data-action='history']").forEach((button) => {
     button.addEventListener("click", () => navigate("history"));
   });
+  document.querySelectorAll("[data-action='admin']").forEach((button) => {
+    button.addEventListener("click", () => navigate("admin"));
+  });
 }
 
 function render() {
@@ -2185,6 +2196,7 @@ function render() {
   if (state.view === "results") return renderResults(state.lastResult);
   if (state.view === "study") return renderStudy();
   if (state.view === "history") return renderHistory();
+  if (state.view === "admin") return renderAdminReview();
   return renderHome();
 }
 
@@ -2739,6 +2751,92 @@ function renderStudy() {
       </div>
     </section>
   `);
+}
+
+function renderAdminReview() {
+  const statusMap = getReviewStatusMap();
+  const summary = summarizeQuestionBank(QUESTIONS, statusMap);
+  const filtered = filterQuestionsForReview(QUESTIONS, state.adminFilters, statusMap);
+  shell(`
+    <section>
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Admin Review</p>
+          <h1 class="question-text">Question bank review status.</h1>
+        </div>
+      </div>
+      <div class="status-grid admin-summary">
+        <div class="metric"><span>Total Questions</span><strong>${summary.total}</strong></div>
+        <div class="metric"><span>Approved</span><strong>${summary.byStatus.approved}</strong></div>
+        <div class="metric"><span>Needs Edit</span><strong>${summary.byStatus.needs_edit}</strong></div>
+        <div class="metric"><span>Retired</span><strong>${summary.byStatus.retired}</strong></div>
+      </div>
+      <div class="admin-filters">
+        <label>
+          <span>Difficulty</span>
+          <select data-admin-filter="difficulty">
+            ${adminOption("all", "All", state.adminFilters.difficulty)}
+            ${Object.keys(MODES).map((mode) => adminOption(mode, MODES[mode].shortName, state.adminFilters.difficulty)).join("")}
+          </select>
+        </label>
+        <label>
+          <span>Status</span>
+          <select data-admin-filter="status">
+            ${adminOption("all", "All", state.adminFilters.status)}
+            ${Object.entries(QUESTION_REVIEW_STATUSES)
+              .map(([value, label]) => adminOption(value, label, state.adminFilters.status))
+              .join("")}
+          </select>
+        </label>
+        <label>
+          <span>Search</span>
+          <input type="search" data-admin-filter="search" value="${state.adminFilters.search}" placeholder="Topic, tag, or question" />
+        </label>
+      </div>
+      <div class="admin-list">
+        ${
+          filtered.length
+            ? filtered.map((question) => adminQuestionRow(question, statusMap)).join("")
+            : '<div class="empty-state"><p>No questions match the current filters.</p></div>'
+        }
+      </div>
+    </section>
+  `);
+  document.querySelectorAll("[data-admin-filter]").forEach((input) => {
+    input.addEventListener("change", () => {
+      state.adminFilters[input.dataset.adminFilter] = input.value;
+      renderAdminReview();
+    });
+  });
+  document.querySelectorAll("[data-question-status]").forEach((select) => {
+    select.addEventListener("change", () => {
+      setQuestionReviewStatus(select.dataset.questionStatus, select.value);
+    });
+  });
+}
+
+function adminOption(value, label, selectedValue) {
+  return `<option value="${value}" ${value === selectedValue ? "selected" : ""}>${label}</option>`;
+}
+
+function adminQuestionRow(question, statusMap) {
+  const status = getQuestionReviewStatus(question, statusMap);
+  return `
+    <article class="admin-question">
+      <div>
+        <span class="pill">${question.difficulty}</span>
+        <span class="pill">${question.type.replace("_", " ")}</span>
+        <span class="pill">${titleCase(question.topic)}</span>
+      </div>
+      <h3>${question.question}</h3>
+      <span>${question.id} · ${(question.tags || []).join(", ")}</span>
+      <select data-question-status="${question.id}" aria-label="Review status for ${question.id}">
+        ${Object.entries(QUESTION_REVIEW_STATUSES)
+          .map(([value, label]) => adminOption(value, label, status))
+          .join("")}
+      </select>
+    </article>
+  `;
 }
 
 function renderHistory() {
