@@ -64,6 +64,8 @@ globalThis.__quizApi = {
   selectMockInterviewQuestions,
   formatDateKey,
   questionsByIds,
+  getFlaggedQuestionIds,
+  isQuestionFlagged,
   selectFlashcards,
   flashcardAnswer,
   flashcardDetail,
@@ -299,6 +301,7 @@ test("builds result labels, weak topics, and recommendations", () => {
   const quiz = {
     mode: "medium",
     questions: [{ id: "q1" }, { id: "q2" }, { id: "q3" }],
+    flaggedQuestionIds: ["q2", "q2", "missing-id"],
     responses: [
       {
         questionId: "q1",
@@ -337,12 +340,25 @@ test("builds result labels, weak topics, and recommendations", () => {
   assert.equal(result.correctCount, 1);
   assert.equal(result.incorrectCount, 2);
   assert.equal(JSON.stringify(result.questionIds), JSON.stringify(["q1", "q2", "q3"]));
+  assert.equal(JSON.stringify(result.flaggedQuestionIds), JSON.stringify(["q2"]));
   assert.equal(JSON.stringify(result.missedQuestionIds), JSON.stringify(["q2", "q3"]));
   assert.equal(
     JSON.stringify(result.weakTopics.map((item) => item.topic)),
     JSON.stringify(["sustainability", "operations"]),
   );
   assert.match(result.recommendation, /Use the study topics page before retrying this mode/);
+});
+
+test("normalizes flagged question IDs for an active quiz", () => {
+  const api = loadQuizApi();
+  const quiz = {
+    questions: [{ id: "easy-power-001" }, { id: "medium-ops-001" }],
+    flaggedQuestionIds: ["medium-ops-001", "medium-ops-001", "missing-id"],
+  };
+
+  assert.equal(JSON.stringify(api.getFlaggedQuestionIds(quiz)), JSON.stringify(["medium-ops-001"]));
+  assert.equal(api.isQuestionFlagged("medium-ops-001", quiz), true);
+  assert.equal(api.isQuestionFlagged("easy-power-001", quiz), false);
 });
 
 test("builds daily drill result metadata and recommendations", () => {

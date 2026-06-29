@@ -1510,6 +1510,7 @@ function createQuiz(mode, questions, source = "standard", options = {}) {
           expiresAt: null,
         }
       : null,
+    flaggedQuestionIds: [],
   };
   navigate("quiz", { mode });
 }
@@ -1550,8 +1551,41 @@ function startMissedQuiz(mode, questionIds) {
   createQuiz(mode, questions, "missed");
 }
 
+function startFlaggedQuiz(mode, questionIds) {
+  const flaggedQuestions = questionsByIds(questionIds);
+  const questions = shuffle(
+    mode === DAILY_DRILL_MODE.mode || mode === MOCK_INTERVIEW_MODE.mode
+      ? flaggedQuestions
+      : flaggedQuestions.filter((question) => question.difficulty === mode),
+  );
+  if (!questions.length) return;
+  createQuiz(mode, questions, "flagged");
+}
+
 function currentQuestion() {
   return state.quiz.questions[state.quiz.index];
+}
+
+function getFlaggedQuestionIds(quiz = state.quiz) {
+  if (!quiz?.flaggedQuestionIds) return [];
+  const knownQuestionIds = new Set((quiz.questions || []).map((question) => question.id));
+  return [...new Set(quiz.flaggedQuestionIds)].filter((questionId) => knownQuestionIds.has(questionId));
+}
+
+function isQuestionFlagged(questionId, quiz = state.quiz) {
+  return getFlaggedQuestionIds(quiz).includes(questionId);
+}
+
+function toggleQuestionFlag(questionId = currentQuestion()?.id) {
+  if (!state.quiz || !questionId) return;
+  const current = new Set(getFlaggedQuestionIds(state.quiz));
+  if (current.has(questionId)) {
+    current.delete(questionId);
+  } else {
+    current.add(questionId);
+  }
+  state.quiz.flaggedQuestionIds = [...current];
+  render();
 }
 
 function isScenario(question) {
@@ -1838,6 +1872,7 @@ function buildResult(quiz) {
     incorrectCount: incorrect,
     totalQuestions: quiz.questions.length,
     questionIds: quiz.questions.map((question) => question.id),
+    flaggedQuestionIds: getFlaggedQuestionIds(quiz),
     missedQuestionIds: quiz.responses
       .filter((response) => !response.correct)
       .map((response) => response.questionId),
