@@ -1156,6 +1156,7 @@ function icon(name) {
     briefcase:
       '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/><path d="M12 12v2"/></svg>',
     mic: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a4 4 0 0 0 4-4V6a4 4 0 0 0-8 0v4a4 4 0 0 0 4 4z"/><path d="M19 10a7 7 0 0 1-14 0"/><path d="M12 17v4"/><path d="M8 21h8"/></svg>',
+    flag: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h12l-2 5 2 5H5"/></svg>',
     settings:
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/><path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.04.04a2 2 0 0 1-2.83 2.83l-.04-.04A1.8 1.8 0 0 0 15 19.4a1.8 1.8 0 0 0-1 .6l-.02.02a2 2 0 0 1-3.96 0L10 20a1.8 1.8 0 0 0-1-.6 1.8 1.8 0 0 0-1.98.36l-.04.04a2 2 0 0 1-2.83-2.83l.04-.04A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-.6-1l-.02-.02a2 2 0 0 1 0-3.96L4 10a1.8 1.8 0 0 0 .6-1 1.8 1.8 0 0 0-.36-1.98l-.04-.04a2 2 0 0 1 2.83-2.83l.04.04A1.8 1.8 0 0 0 9 4.6a1.8 1.8 0 0 0 1-.6l.02-.02a2 2 0 0 1 3.96 0L14 4a1.8 1.8 0 0 0 1 .6 1.8 1.8 0 0 0 1.98-.36l.04-.04a2 2 0 0 1 2.83 2.83l-.04.04A1.8 1.8 0 0 0 19.4 9a1.8 1.8 0 0 0 .6 1l.02.02a2 2 0 0 1 0 3.96L20 14a1.8 1.8 0 0 0-.6 1z"/></svg>',
     study:
@@ -2345,6 +2346,7 @@ function renderQuiz() {
   syncTimerState();
   const question = currentQuestion();
   const progress = Math.round(((quiz.index + 1) / quiz.questions.length) * 100);
+  const flagged = isQuestionFlagged(question.id, quiz);
   shell(`
     <section class="quiz-layout">
       <article class="card quiz-card">
@@ -2361,6 +2363,9 @@ function renderQuiz() {
         ${questionInput(question)}
         ${quiz.submitted ? feedbackBlock(question) : ""}
         <div class="card-actions">
+          <button class="btn flag-toggle ${flagged ? "active" : ""}" data-flag-question aria-pressed="${flagged}">
+            ${icon("flag")} ${flagged ? "Flagged" : "Flag For Review"}
+          </button>
           ${
             quiz.submitted
               ? `<button class="btn btn-primary" data-next>${quiz.index === quiz.questions.length - 1 ? `${icon("chart")} Show Results` : `${icon("next")} Next Question`}</button>`
@@ -2499,6 +2504,7 @@ function feedbackBlock(question) {
 
 function quizStatus() {
   const completed = state.quiz.responses.length;
+  const flaggedCount = getFlaggedQuestionIds(state.quiz).length;
   const earned = state.quiz.responses.reduce((sum, item) => sum + item.score, 0);
   const possible = state.quiz.responses.reduce((sum, item) => sum + item.maxScore, 0);
   const liveScore = possible ? `${Math.round((earned / possible) * 100)}%` : "Pending";
@@ -2513,6 +2519,7 @@ function quizStatus() {
     <dl>
       <div><dt>Answered</dt><dd>${completed}/${state.quiz.questions.length}</dd></div>
       <div><dt>Current Score</dt><dd>${liveScore}</dd></div>
+      <div><dt>Flagged</dt><dd>${flaggedCount}</dd></div>
       <div><dt>Mode</dt><dd>${getModeConfig(state.quiz.mode).shortName}</dd></div>
       <div><dt>Pass Target</dt><dd>${getModeConfig(state.quiz.mode).threshold}%</dd></div>
       ${timerRows}
@@ -2537,6 +2544,8 @@ function bindQuestionEvents(question) {
   if (voiceToggle) voiceToggle.addEventListener("click", toggleVoicePractice);
   const submit = document.querySelector("[data-submit]");
   if (submit) submit.addEventListener("click", submitAnswer);
+  const flag = document.querySelector("[data-flag-question]");
+  if (flag) flag.addEventListener("click", () => toggleQuestionFlag(question.id));
   const next = document.querySelector("[data-next]");
   if (next) next.addEventListener("click", nextQuestion);
 }
@@ -2546,6 +2555,7 @@ function renderResults(result) {
   if (!effectiveResult) return renderHistory();
   const nextMode = getModeConfig(effectiveResult.mode).next;
   const missedCount = effectiveResult.missedQuestionIds?.length || 0;
+  const flaggedCount = effectiveResult.flaggedQuestionIds?.length || 0;
   const timedSummary = effectiveResult.timed
     ? `
           <div class="metric"><span>Timed Out</span><strong>${effectiveResult.timedOutCount || 0}</strong></div>
@@ -2565,6 +2575,7 @@ function renderResults(result) {
           <div class="metric"><span>Correct</span><strong>${effectiveResult.correctCount}</strong></div>
           <div class="metric"><span>Incorrect</span><strong>${effectiveResult.incorrectCount}</strong></div>
           <div class="metric"><span>Points</span><strong>${effectiveResult.totalScore}/${effectiveResult.maxScore}</strong></div>
+          <div class="metric"><span>Flagged</span><strong>${flaggedCount}</strong></div>
           <div class="metric"><span>Completed</span><strong>${formatDate(effectiveResult.completedAt).split(",")[0]}</strong></div>
           ${timedSummary}
         </div>
@@ -2573,6 +2584,11 @@ function renderResults(result) {
           ${
             missedCount
               ? `<button class="btn" data-retry-missed="${effectiveResult.id}">${icon("next")} Retry Missed (${missedCount})</button>`
+              : ""
+          }
+          ${
+            flaggedCount
+              ? `<button class="btn" data-retry-flagged="${effectiveResult.id}">${icon("flag")} Retry Flagged (${flaggedCount})</button>`
               : ""
           }
           ${nextMode ? `<button class="btn" data-start-mode="${nextMode}">${icon("next")} Try ${getModeConfig(nextMode).shortName}</button>` : ""}
@@ -2616,6 +2632,13 @@ function renderResults(result) {
       const historyResult = getHistory().find((item) => item.id === button.dataset.retryMissed);
       const selectedResult = historyResult || effectiveResult;
       startMissedQuiz(selectedResult.mode, selectedResult.missedQuestionIds || []);
+    });
+  });
+  document.querySelectorAll("[data-retry-flagged]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const historyResult = getHistory().find((item) => item.id === button.dataset.retryFlagged);
+      const selectedResult = historyResult || effectiveResult;
+      startFlaggedQuiz(selectedResult.mode, selectedResult.flaggedQuestionIds || []);
     });
   });
   document.querySelectorAll("[data-start-mode]").forEach((button) => {
@@ -2895,14 +2918,25 @@ function renderHistory() {
                   (item) => `
                     <article class="history-item">
                       <strong>${item.modeName}: ${item.percentage}% · ${item.label}</strong>
-                      <span>${formatDate(item.completedAt)} · ${item.correctCount}/${item.totalQuestions} questions correct${item.timed ? ` · Timed out: ${item.timedOutCount || 0}` : ""} · Weak topics: ${
+                      <span>${formatDate(item.completedAt)} · ${item.correctCount}/${item.totalQuestions} questions correct${item.timed ? ` · Timed out: ${item.timedOutCount || 0}` : ""} · Flagged: ${item.flaggedQuestionIds?.length || 0} · Weak topics: ${
                         item.weakTopics.length
                           ? item.weakTopics.map((topic) => titleCase(topic.topic)).join(", ")
                           : "None"
                       }</span>
                       ${
-                        item.missedQuestionIds?.length
-                          ? `<div class="card-actions"><button class="btn" data-retry-missed="${item.id}">${icon("next")} Retry Missed (${item.missedQuestionIds.length})</button></div>`
+                        item.missedQuestionIds?.length || item.flaggedQuestionIds?.length
+                          ? `<div class="card-actions">
+                              ${
+                                item.missedQuestionIds?.length
+                                  ? `<button class="btn" data-retry-missed="${item.id}">${icon("next")} Retry Missed (${item.missedQuestionIds.length})</button>`
+                                  : ""
+                              }
+                              ${
+                                item.flaggedQuestionIds?.length
+                                  ? `<button class="btn" data-retry-flagged="${item.id}">${icon("flag")} Retry Flagged (${item.flaggedQuestionIds.length})</button>`
+                                  : ""
+                              }
+                            </div>`
                           : ""
                       }
                     </article>
@@ -2927,6 +2961,12 @@ function renderHistory() {
     button.addEventListener("click", () => {
       const result = getHistory().find((item) => item.id === button.dataset.retryMissed);
       if (result) startMissedQuiz(result.mode, result.missedQuestionIds || []);
+    });
+  });
+  document.querySelectorAll("[data-retry-flagged]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const result = getHistory().find((item) => item.id === button.dataset.retryFlagged);
+      if (result) startFlaggedQuiz(result.mode, result.flaggedQuestionIds || []);
     });
   });
 }
