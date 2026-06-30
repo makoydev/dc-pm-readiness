@@ -2381,7 +2381,10 @@ function renderQuiz() {
           ${
             quiz.submitted
               ? `<button class="btn btn-primary" data-next>${quiz.index === quiz.questions.length - 1 ? `${icon("chart")} Show Results` : `${icon("next")} Next Question`}</button>`
-              : `<button class="btn btn-primary" data-submit ${quiz.selected.length ? "" : "disabled"}>${icon("next")} Submit Answer</button>`
+              : `
+                <button class="btn btn-primary" data-submit ${quiz.selected.length ? "" : "disabled"}>${icon("next")} Submit Answer</button>
+                <button class="btn" data-skip-question>${icon("next")} Skip Question</button>
+              `
           }
           <button class="btn" data-action="home">Exit</button>
         </div>
@@ -2517,6 +2520,7 @@ function feedbackBlock(question) {
 function quizStatus() {
   const completed = state.quiz.responses.length;
   const flaggedCount = getFlaggedQuestionIds(state.quiz).length;
+  const skippedCount = state.quiz.responses.filter((response) => response.skipped).length;
   const earned = state.quiz.responses.reduce((sum, item) => sum + item.score, 0);
   const possible = state.quiz.responses.reduce((sum, item) => sum + item.maxScore, 0);
   const liveScore = possible ? `${Math.round((earned / possible) * 100)}%` : "Pending";
@@ -2532,6 +2536,7 @@ function quizStatus() {
       <div><dt>Answered</dt><dd>${completed}/${state.quiz.questions.length}</dd></div>
       <div><dt>Current Score</dt><dd>${liveScore}</dd></div>
       <div><dt>Flagged</dt><dd>${flaggedCount}</dd></div>
+      <div><dt>Skipped</dt><dd>${skippedCount}</dd></div>
       <div><dt>Mode</dt><dd>${getModeConfig(state.quiz.mode).shortName}</dd></div>
       <div><dt>Pass Target</dt><dd>${getModeConfig(state.quiz.mode).threshold}%</dd></div>
       ${timerRows}
@@ -2556,6 +2561,8 @@ function bindQuestionEvents(question) {
   if (voiceToggle) voiceToggle.addEventListener("click", toggleVoicePractice);
   const submit = document.querySelector("[data-submit]");
   if (submit) submit.addEventListener("click", submitAnswer);
+  const skip = document.querySelector("[data-skip-question]");
+  if (skip) skip.addEventListener("click", skipQuestion);
   const flag = document.querySelector("[data-flag-question]");
   if (flag) flag.addEventListener("click", () => toggleQuestionFlag(question.id));
   const next = document.querySelector("[data-next]");
@@ -2568,6 +2575,7 @@ function renderResults(result) {
   const nextMode = getModeConfig(effectiveResult.mode).next;
   const missedCount = effectiveResult.missedQuestionIds?.length || 0;
   const flaggedCount = effectiveResult.flaggedQuestionIds?.length || 0;
+  const skippedCount = effectiveResult.skippedCount || effectiveResult.skippedQuestionIds?.length || 0;
   const timedSummary = effectiveResult.timed
     ? `
           <div class="metric"><span>Timed Out</span><strong>${effectiveResult.timedOutCount || 0}</strong></div>
@@ -2588,6 +2596,7 @@ function renderResults(result) {
           <div class="metric"><span>Incorrect</span><strong>${effectiveResult.incorrectCount}</strong></div>
           <div class="metric"><span>Points</span><strong>${effectiveResult.totalScore}/${effectiveResult.maxScore}</strong></div>
           <div class="metric"><span>Flagged</span><strong>${flaggedCount}</strong></div>
+          <div class="metric"><span>Skipped</span><strong>${skippedCount}</strong></div>
           <div class="metric"><span>Completed</span><strong>${formatDate(effectiveResult.completedAt).split(",")[0]}</strong></div>
           ${timedSummary}
         </div>
@@ -2930,7 +2939,7 @@ function renderHistory() {
                   (item) => `
                     <article class="history-item">
                       <strong>${item.modeName}: ${item.percentage}% · ${item.label}</strong>
-                      <span>${formatDate(item.completedAt)} · ${item.correctCount}/${item.totalQuestions} questions correct${item.timed ? ` · Timed out: ${item.timedOutCount || 0}` : ""} · Flagged: ${item.flaggedQuestionIds?.length || 0} · Weak topics: ${
+                      <span>${formatDate(item.completedAt)} · ${item.correctCount}/${item.totalQuestions} questions correct${item.timed ? ` · Timed out: ${item.timedOutCount || 0}` : ""} · Flagged: ${item.flaggedQuestionIds?.length || 0} · Skipped: ${item.skippedCount || item.skippedQuestionIds?.length || 0} · Weak topics: ${
                         item.weakTopics.length
                           ? item.weakTopics.map((topic) => titleCase(topic.topic)).join(", ")
                           : "None"
