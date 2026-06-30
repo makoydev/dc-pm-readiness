@@ -329,6 +329,7 @@ test("builds result labels, weak topics, and recommendations", () => {
         correct: false,
         score: 0,
         maxScore: 1,
+        skipped: true,
       },
     ],
   };
@@ -339,8 +340,10 @@ test("builds result labels, weak topics, and recommendations", () => {
   assert.equal(result.label, "Study operations basics");
   assert.equal(result.correctCount, 1);
   assert.equal(result.incorrectCount, 2);
+  assert.equal(result.skippedCount, 1);
   assert.equal(JSON.stringify(result.questionIds), JSON.stringify(["q1", "q2", "q3"]));
   assert.equal(JSON.stringify(result.flaggedQuestionIds), JSON.stringify(["q2"]));
+  assert.equal(JSON.stringify(result.skippedQuestionIds), JSON.stringify(["q3"]));
   assert.equal(JSON.stringify(result.missedQuestionIds), JSON.stringify(["q2", "q3"]));
   assert.equal(
     JSON.stringify(result.weakTopics.map((item) => item.topic)),

@@ -1798,10 +1798,10 @@ function toggleVoicePractice() {
   startVoicePractice();
 }
 
-function recordResponse({ timedOut = false, now = Date.now() } = {}) {
+function recordResponse({ timedOut = false, skipped = false, now = Date.now() } = {}) {
   const question = currentQuestion();
   if (state.quiz.submitted) return;
-  const selection = timedOut ? [] : [...state.quiz.selected];
+  const selection = timedOut || skipped ? [] : [...state.quiz.selected];
   state.quiz.submitted = true;
   state.quiz.responses.push({
     questionId: question.id,
@@ -1809,10 +1809,11 @@ function recordResponse({ timedOut = false, now = Date.now() } = {}) {
     tags: question.tags,
     selected: selection,
     textAnswer: state.quiz.textAnswer,
-    correct: timedOut ? false : isCorrect(question, selection),
-    score: timedOut ? 0 : scoreFor(question, selection),
+    correct: timedOut || skipped ? false : isCorrect(question, selection),
+    score: timedOut || skipped ? 0 : scoreFor(question, selection),
     maxScore: maxScoreFor(question),
     timedOut,
+    skipped,
     timedSecondsUsed: state.quiz.timer?.enabled
       ? timedOut
         ? state.quiz.timer.secondsPerQuestion
@@ -1827,6 +1828,13 @@ function submitAnswer() {
   recordResponse();
   stopTimer();
   render();
+}
+
+function skipQuestion() {
+  if (state.quiz.submitted) return;
+  stopVoicePractice();
+  recordResponse({ skipped: true });
+  nextQuestion();
 }
 
 function nextQuestion() {
@@ -1874,6 +1882,9 @@ function buildResult(quiz) {
     totalQuestions: quiz.questions.length,
     questionIds: quiz.questions.map((question) => question.id),
     flaggedQuestionIds: getFlaggedQuestionIds(quiz),
+    skippedQuestionIds: quiz.responses
+      .filter((response) => response.skipped)
+      .map((response) => response.questionId),
     missedQuestionIds: quiz.responses
       .filter((response) => !response.correct)
       .map((response) => response.questionId),
@@ -1882,6 +1893,7 @@ function buildResult(quiz) {
     timed: Boolean(quiz.timer?.enabled),
     timedSecondsPerQuestion: quiz.timer?.secondsPerQuestion || null,
     timedOutCount: quiz.responses.filter((response) => response.timedOut).length,
+    skippedCount: quiz.responses.filter((response) => response.skipped).length,
     totalTimedSeconds: timedResponses.reduce((sum, item) => sum + item.timedSecondsUsed, 0),
     weakTopics,
     interviewFeedback,
