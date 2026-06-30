@@ -42,6 +42,7 @@ For future feature work, use this default workflow unless the task explicitly sa
 - Mock interview mode with diverse hard-scenario prompts
 - Voice-answer practice for scenario responses in supported browsers
 - Flashcard mode with randomized decks and review tracking
+- Skip-question flow with skipped counts in results and history
 - Flag-for-review during quiz attempts with retry-flagged review
 - Retry-missed flow from results and history
 - Multiple-choice, true/false, multi-select, and scenario self-scoring
